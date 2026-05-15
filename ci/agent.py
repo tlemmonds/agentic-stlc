@@ -877,6 +877,10 @@ def write_recommendation(he_tasks: list, requirements_total: int) -> None:
 # Order matters: normalize → traceability → coverage → gates → rca → summary
 _CRITICAL_SCRIPTS = [
     "ci/normalize_artifacts.py",
+    # Stage 2b — confidence scoring runs before traceability so its outputs
+    # (high_risk_requirements.json, scenario-confidence-report.json) are
+    # available to release_recommendation and write_github_summary.
+    "ci/scenario_confidence.py",
     "ci/build_traceability.py",
     "ci/release_recommendation.py",
     "ci/coverage_analysis.py",
@@ -886,6 +890,10 @@ _CRITICAL_SCRIPTS = [
 # Order matters: fetch_rca must run before failure_intelligence (reads rca_report.json),
 # and failure_intelligence must run before self_healing (reads failure_intelligence.json).
 _ADVISORY_SCRIPTS = [
+    # Stage 0 — Agentic Release Notes diff (preview only by default).
+    # Runs unconditionally; if there's no release_notes/*.md it exits 1
+    # which the advisory chain logs as a warning and moves on.
+    "ci/release_diff.py",
     "ci/impact_analysis.py",
     "ci/quality_gates.py",
     "ci/fetch_rca.py",

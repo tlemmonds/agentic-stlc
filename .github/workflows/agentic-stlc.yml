@@ -47,6 +47,11 @@ on:
         required: false
         default: "false"
         type: boolean
+      apply_release_delta:
+        description: "Stage 0: apply the proposed release-notes operations to scenarios.json + freeze the new release lock (default: preview only)"
+        required: false
+        default: false
+        type: boolean
 
 env:
   NODE_VERSION: "22"
@@ -111,6 +116,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: "Stage 0 — Apply release notes delta (if requested)"
+        if: ${{ inputs.apply_release_delta == true }}
+        shell: bash
+        run: |
+          echo "Applying release_notes operations to scenarios.json + writing new release lock"
+          python ci/release_diff.py --apply
+
       - name: "Run Orchestrator"
         id: orchestrate
         uses: ./.github/actions/orchestrate
@@ -121,6 +133,18 @@ jobs:
           full-run:       ${{ inputs.full_run || 'true' }}
           target-url:     ${{ inputs.target_url || '' }}
           he-config:      "hyperexecute.yaml"
+
+      - name: "Upload release delta + lock files"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-delta
+          path: |
+            reports/release_delta.json
+            reports/release_delta.md
+            release_notes/*.lock.json
+          if-no-files-found: warn
+          retention-days: 30
 
   # ── Summary ───────────────────────────────────────────────────────────────
   summary:

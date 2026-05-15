@@ -1,5 +1,5 @@
 """
-Scenario Confidence Analysis Engine.
+Scenario Confidence Analysis Engine — Stage 2b of the Agentic STLC pipeline.
 
 Scores each scenario's test coverage sufficiency across multiple dimensions:
   - happy_path: Does the scenario cover the primary success flow?
@@ -7,15 +7,26 @@ Scores each scenario's test coverage sufficiency across multiple dimensions:
   - edge_case: Are boundary/unusual inputs covered?
   - mobile: Is mobile/responsive behavior considered?
 
-Produces reports consumed by ConfidenceAnalysisSkill and ChatReporter.
+Produces reports consumed by ConfidenceAnalysisSkill, ChatReporter, AND
+write_github_summary.py (which renders the Stage 2b table in the GH summary).
+
+Entrypoints:
+  - run_confidence_analysis(...) — library function used by skills/astlc
+  - python ci/scenario_confidence.py — Stage 2b in the ci/agent.py post-pipeline
+    chain; reads requirements/analyzed_requirements.json + scenarios/scenarios.json
+    from disk and writes reports/scenario-confidence-report.json (etc).
 """
 from __future__ import annotations
 
 import json
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).parent))
+from stage_utils import print_stage_header, print_stage_result
 
 
 # Keywords that indicate negative/edge-case coverage in scenario descriptions
@@ -259,3 +270,62 @@ def run_confidence_analysis(
     )
 
     return report
+
+
+def main() -> int:
+    """Stage 2b CLI entrypoint — invoked from ci/agent.py's post-pipeline chain.
+
+    Reads analyzed requirements and scenarios from disk, runs the analysis,
+    prints a stage banner with the level breakdown, and exits 0 on success
+    (1 if either input file is missing — the pipeline treats Stage 2b as a
+    critical script in the chain)."""
+    print_stage_header("2b", "SCENARIO_CONFIDENCE", "Score scenario coverage sufficiency and gate on HIGH-criticality gaps")
+
+    req_path = Path("requirements/analyzed_requirements.json")
+    sc_path  = Path("scenarios/scenarios.json")
+    if not req_path.exists() or not sc_path.exists():
+        print(
+            f"[scenario_confidence] missing inputs — req={req_path.exists()} sc={sc_path.exists()}",
+            file=sys.stderr,
+        )
+        return 1
+
+    requirements = json.loads(req_path.read_text(encoding="utf-8"))
+    scenarios    = json.loads(sc_path.read_text(encoding="utf-8"))
+
+    # Optional: pass through a Playwright-bodies map so the scoring can detect
+    # whether each scenario has a dedicated regression body. agent.py exposes
+    # PLAYWRIGHT_BODIES and the test asset chain; reading it lazily keeps this
+    # module decoupled from agent.py's import side-effects.
+    bodies: dict[str, str] = {}
+    try:
+        from agent import PLAYWRIGHT_BODIES as _bodies  # type: ignore[attr-defined]
+        bodies = dict(_bodies)
+    except Exception:
+        pass
+
+    report = run_confidence_analysis(
+        requirements=requirements,
+        scenarios=scenarios,
+        playwright_bodies=bodies,
+        output_dir="reports",
+    )
+
+    summary  = report.get("summary", {})
+    by_level = summary.get("by_confidence_level", {})
+    high_risk_count = len(report.get("high_risk_requirements", []))
+    print_stage_result("2b", "SCENARIO_CONFIDENCE", {
+        "Scenarios scored":      summary.get("total_requirements", 0),
+        "VERY_HIGH":             by_level.get("VERY_HIGH", 0),
+        "HIGH":                  by_level.get("HIGH", 0),
+        "MEDIUM":                by_level.get("MEDIUM", 0),
+        "LOW":                   by_level.get("LOW", 0),
+        "CRITICAL_GAP":          by_level.get("CRITICAL_GAP", 0),
+        "High-risk requirements": high_risk_count,
+        "Outputs":               "reports/scenario-confidence-report.json, requirement-confidence-summary.md",
+    })
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

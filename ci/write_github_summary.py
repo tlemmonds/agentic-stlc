@@ -202,6 +202,55 @@ def main():
         emit(f"- [GitHub Actions Run]({run_url})")
     emit("")
 
+    # ── Stage 0: Agentic Release Notes Diff ───────────────────────────────────
+    delta = load_json("reports/release_delta.json", None)
+    if delta:
+        applied = bool(delta.get("applied"))
+        summary_0 = delta.get("summary", {}) or {}
+        ops = delta.get("operations", []) or []
+        unmatched = delta.get("unmatched_items", []) or []
+        op_icon = {"ADD": "🟢 ADD", "EDIT": "🟡 EDIT", "DELETE": "🔴 DELETE"}
+        emit("## Stage 0 · Agentic Release Notes")
+        emit("")
+        emit(
+            f"**{delta.get('from_release', '?')} → {delta.get('to_release', '?')}**  ·  "
+            f"Mode: **{'APPLIED' if applied else 'PROPOSE (no mutations)'}**  ·  "
+            f"Match threshold: `{delta.get('threshold', 0)}`"
+        )
+        emit("")
+        emit("| Operation | Count |")
+        emit("|---|---|")
+        emit(f"| 🟢 ADD       | {summary_0.get('ADD', 0)} |")
+        emit(f"| 🟡 EDIT      | {summary_0.get('EDIT', 0)} |")
+        emit(f"| 🔴 DELETE    | {summary_0.get('DELETE', 0)} |")
+        emit(f"| ⚠️ Unmatched | {summary_0.get('UNMATCHED', 0)} |")
+        emit("")
+        if ops:
+            emit("| Op | Scenario | Requirement | Issue | Score | Item |")
+            emit("|---|---|---|---|---|---|")
+            for op in ops:
+                emit(
+                    f"| {op_icon.get(op['op'], op['op'])} | `{op.get('sc_id') or '—'}` | "
+                    f"`{op.get('requirement_id') or '—'}` | {op.get('issue') or '—'} | "
+                    f"{op.get('match_score', 0):.2f} | {op.get('item_text', '')} |"
+                )
+            emit("")
+        if unmatched:
+            emit("**Unmatched items** (manual scenario assignment required):")
+            emit("")
+            emit("| Section | Best score | Reason | Item |")
+            emit("|---|---|---|---|")
+            for u in unmatched:
+                emit(
+                    f"| {u.get('section', '')} | {u.get('best_score', 0):.2f} | "
+                    f"{u.get('reason', '')} | {u.get('text', '')} |"
+                )
+            emit("")
+        if not applied:
+            emit("> ℹ️ Preview only. Run with `apply_release_delta=true` to commit "
+                 "operations to `scenarios.json` and freeze the new release lock.")
+            emit("")
+
     # ── Stage 1: Kane AI Requirement Analysis ─────────────────────────────────
     emit("## Stage 1 · Kane AI Functional Verification")
     emit("")
@@ -247,6 +296,57 @@ def main():
             for s in new_sc + updated_sc:
                 emit(f"| `{s['id']}` {s.get('title', '')} | {status_icon(s['status'])} {s['status']} | `{s.get('requirement_id', '')}` |")
     emit("")
+
+    # ── Stage 2b: Scenario Confidence ──────────────────────────────────────────
+    confidence = load_json("reports/scenario-confidence-report.json", None)
+    if confidence:
+        summary_2b = confidence.get("summary", {}) or {}
+        by_level = summary_2b.get("by_confidence_level", {}) or {}
+        records  = confidence.get("records", []) or []
+        high_risk = [r for r in records if r.get("scoring", {}).get("risk_level") == "HIGH"]
+        emit("## Stage 2b · Scenario Confidence Analysis")
+        emit("")
+        if high_risk:
+            emit(f"**Confidence gate:** ❌ FAILED — HIGH criticality requirements with LOW/CRITICAL_GAP confidence: {len(high_risk)}")
+        else:
+            emit("**Confidence gate:** ✅ PASSED")
+        emit("")
+        emit("| Level | Count | Meaning |")
+        emit("|---|---|---|")
+        emit(f"| 🟢 VERY_HIGH    | {by_level.get('VERY_HIGH', 0)}    | All key dimensions covered; minor gaps acceptable |")
+        emit(f"| 🟡 HIGH         | {by_level.get('HIGH', 0)}         | Core flow validated; some coverage classes missing |")
+        emit(f"| 🟠 MEDIUM       | {by_level.get('MEDIUM', 0)}       | Happy path present but important gaps exist |")
+        emit(f"| 🔴 LOW          | {by_level.get('LOW', 0)}          | Significant gaps — Kane failure or no negative tests on critical feature |")
+        emit(f"| 🚨 CRITICAL_GAP | {by_level.get('CRITICAL_GAP', 0)} | No scenario mapped — zero automated coverage |")
+        emit("")
+        if records:
+            emit("### Requirement Confidence Detail")
+            emit("")
+            emit("| Requirement | Scenario | Feature | Criticality | Confidence | Kane | Top Gap | Recommendation |")
+            emit("|---|---|---|---|---|---|---|---|")
+            level_icon = {
+                "VERY_HIGH": "🟢 VERY_HIGH",
+                "HIGH":      "🟡 HIGH",
+                "MEDIUM":    "🟠 MEDIUM",
+                "LOW":       "🔴 LOW",
+                "CRITICAL_GAP": "🚨 CRITICAL_GAP",
+            }
+            kane_icon = {"passed": "✅ passed", "failed": "❌ failed"}
+            for r in records:
+                lvl   = r.get("confidence_level", "")
+                kane  = r.get("kane_status", "")
+                gaps  = r.get("gaps", []) or []
+                top_gap = (gaps[0] if gaps else "")[:60]
+                recs  = r.get("recommendations", []) or []
+                top_rec = (recs[0] if recs else "")[:60]
+                emit(
+                    f"| `{r.get('requirement_id', '')}` | `{r.get('scenario_id', '')}` | "
+                    f"{r.get('feature', '')} | {r.get('criticality', '')} | "
+                    f"{level_icon.get(lvl, lvl)} | {kane_icon.get(kane, kane)} | "
+                    f"{top_gap}{'…' if len(top_gap) == 60 else ''} | "
+                    f"{top_rec}{'…' if len(top_rec) == 60 else ''} |"
+                )
+            emit("")
 
     # ── Stage 3: Test Generation ───────────────────────────────────────────────
     emit("## Stage 3 · Generated Playwright Tests")
