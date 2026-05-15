@@ -1,0 +1,9 @@
+{
+  "sc_id": "SC-008",
+  "requirement_id": "AC-008",
+  "feature": "general",
+  "description_hash": "73bbd4aac507",
+  "description": "User can register a new account by filling in first name last name email telephone and password fields",
+  "objective": "User can register a new account by filling in first name last name email telephone and password fields",
+  "asset": "sc_008_opened_the_account_registration_page_on_ecommerce_playground_test.md"
+}

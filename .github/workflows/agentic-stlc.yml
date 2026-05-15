@@ -42,6 +42,11 @@ on:
         required: false
         default: ""
         type: string
+      regenerate_tests:
+        description: "FORCE_RE_AUTHOR: re-record every Kane _test.md asset (expensive — only when AUT shape changed)"
+        required: false
+        default: "false"
+        type: boolean
 
 env:
   NODE_VERSION: "22"
@@ -61,6 +66,10 @@ jobs:
 
       - name: "Run KaneAI Analysis"
         id: analyze
+        env:
+          # Replay-first dispatch: when true, every existing _test.md asset
+          # is re-recorded from scratch. Default = false → replay if hash matches.
+          FORCE_RE_AUTHOR: ${{ inputs.regenerate_tests || 'false' }}
         uses: ./.github/actions/analyze
         with:
           lt-username:     ${{ secrets.LT_USERNAME }}
@@ -70,6 +79,24 @@ jobs:
           demo-mode:       ${{ inputs.demo_mode || 'false' }}
           kane-project-id: "01J2VAWPNBPA21T0BW44JW026X"
           kane-folder-id:  "01KPD0NC5ZXZD9EXB23QCATTG2"
+
+      - name: "Upload Kane Test.md assets"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kane-test-md-assets
+          path: tests/kane/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: "Upload replay decisions log"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: replay-decisions
+          path: reports/replay_decisions.json
+          if-no-files-found: warn
+          retention-days: 14
 
   # ── Stages 2–7: Orchestrator ──────────────────────────────────────────────
   # Uses the reusable composite action: .github/actions/orchestrate

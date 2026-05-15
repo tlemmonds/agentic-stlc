@@ -1,0 +1,9 @@
+{
+  "sc_id": "SC-005",
+  "requirement_id": "AC-005",
+  "feature": "general",
+  "description_hash": "2ca39e233e4e",
+  "description": "User can click a product thumbnail to open its detail page and see the product name and price",
+  "objective": "User can click a product thumbnail to open its detail page and see the product name and price",
+  "asset": "sc_005_opened_a_product_detail_page_on_ecommerce_playground_lambdat_test.md"
+}

@@ -3,7 +3,7 @@
     "id": "SC-001",
     "test_case_id": "TC-001",
     "requirement_id": "AC-001",
-    "title": "searched for products on ecommerce-playground.lambdatest.io",
+    "title": "attempted to add a product to the cart on ecommerce-playground.lambdatest.io",
     "function_name": "test_sc_001_searched_for_products_on_ecommerce_playground_lamb",
     "status": "active",
     "source_description": "User can add a product to the cart from the product detail page and see the cart item count update",
@@ -11,72 +11,59 @@
       "Navigate to https://ecommerce-playground.lambdatest.io/",
       "Verify the acceptance criterion"
     ],
-    "expected_result": "The run attempted to use the site\u2019s search box to find multiple products in sequence (first \u201ciphone\u201d, then \u201cmac\u201d, then \u201ccanon\u201d).\nIt successfully entered \u201ciphone\u201d in the \u201cSearch For Products\u201d field on the homepage and opened an iPhone product page (showing \u201ciPhone\u201d with an \u201cOut Of Stock\u201d label).\nFrom the iPhone product page, it entered \u201cmac\u201d in the search field and clicked a \u201cMacBook\u201d result from the search suggestions, which navigated to a MacBook product page.\nThe run then tried to type \u201ccanon\u201d into the search box while still on a product page, but the automation ended before it could complete the next action (for example, selecting a Canon result or loading a Canon product/search results page).\nWhy it likely failed: the flow appears incomplete\u2014after typing \u201ccanon\u201d there\u2019s no recorded click on a search suggestion or the Search button, and no final page showing Canon results; the script may have stopped early or couldn\u2019t find/activate the next expected search result element.",
+    "expected_result": "The run navigated to a LambdaTest eCommerce Playground product page (HTC Touch HD) and tried to use the purchase controls next to the quantity selector.\nOn the product page, the purchase buttons were labeled “OUT OF STOCK,” indicating the item was not available to add to the cart.\nThe automation clicked the teal button to the right of the quantity selector and then clicked the teal “OUT OF STOCK” button, but since the product was out of stock, this did not add anything to the cart.\nAfter scrolling down, it attempted to click a “Popup” button/link in the product options area, but this did not lead to completing the intended shopping action (no add-to-cart/cart page confirmation is shown).\nThe run likely failed because the item could not be purchased (out-of-stock state), so the expected add-to-cart behavior could not occur even though the buttons were clicked.",
     "kane_url": "https://ecommerce-playground.lambdatest.io/",
-    "last_verified": "2026-05-11",
-    "description": "User can add a product to the cart from the product detail page and see the cart item count update",
-    "feature": "CART",
-    "kane_objective": "Navigate to product_id=28 \u2014 click Add to Cart \u2014 verify cart icon count updates. Stop once confirmed."
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-002",
     "test_case_id": "TC-002",
     "requirement_id": "AC-002",
-    "title": "attempted to open the cart and select a product option on ecommerce-playground.lambdatest.io",
+    "title": "attempted to open a specific product page on ecommerce-playground.lambdatest.io",
     "function_name": "test_sc_002_attempted_to_open_the_cart_and_select_a_product_op",
     "status": "active",
-    "source_description": "User can open the cart and see the list of added items with their names and prices",
+    "source_description": "User can open the cart dropdown and see the list of added items with their names and prices",
     "steps": [
       "Navigate to https://ecommerce-playground.lambdatest.io/",
       "Verify the acceptance criterion"
     ],
-    "expected_result": "The run navigated to the LambdaTest eCommerce Playground site and opened the cart panel from the top-right cart icon.\nThe cart slide-out showed \u201cYour shopping cart is empty!\u201d with $0.00 totals, indicating nothing was successfully added to the cart at that point.\nIt then opened a product page (URL shows product_id=30). The visible product page in the screenshots is for \u201cCanon EOS 5D\u201d and shows a required option dropdown (\u201c--- Please Select ---\u201d with a red \u201cSize required!\u201d message), suggesting the product needs an option selected before it can be added to the cart.\nA later step attempted to click a specific product option element (DOM id #input-option230-216836), likely to satisfy the required \u201cSize\u201d selection.\nThe automation failed immediately after that with \u201cstep file not found,\u201d so it never completed the next action (such as adding the item to the cart or proceeding to checkout). This looks like a test/script issue rather than a user-visible site error, and it prevented finishing the shopping flow.\nThere is also a mismatch between the intended product (\u201cMicrosoft smartwatch\u201d was clicked earlier) and the product page shown (\u201cCanon EOS 5D\u201d), which likely indicates the flow navigated to an unexpected product page or the product selection step did not land on the correct item.",
+    "expected_result": "The run was trying to navigate to a specific product page on the LambdaTest eCommerce Playground and interact with the product purchase area (click the large turquoise “OUT OF STOCK” button).\nThe automation did reach a product detail page where the product box showed “Availability: Out Of Stock” and two “OUT OF STOCK” buttons, indicating the target kind of UI was present.\nHowever, the run failed partway through because required steps could not be executed: Step 2 and Step 21 reported “step file not found,” so the flow stopped before it could reliably complete the intended actions.\nThere was also a navigation mismatch: a later step intended to go to product_id=28, but the browser ended up on product_id=43 instead, suggesting the navigation didn’t go to the exact requested page (possibly due to a wrong link/redirect or the step not running as expected).\nBecause of the missing step definitions and the incorrect final product page, the requested click and any follow-up outcome (such as adding to cart or confirming a message) could not be completed or verified.",
     "kane_url": "https://ecommerce-playground.lambdatest.io/",
-    "last_verified": "2026-05-11",
-    "description": "User can open the cart dropdown and see the list of added items with their names and prices",
-    "feature": "CART",
-    "kane_objective": "Navigate to product_id=28 \u2014 add to cart \u2014 open cart dropdown \u2014 verify item name and price. Stop once confirmed.",
-    "updated_at": "2026-05-13T23:35:57.885930+00:00"
+    "last_verified": "2026-05-14",
+    "kane_objective": "Stop immediately once confirmed. Do not navigate further.",
+    "updated_at": "2026-05-14T21:20:59.170674+00:00"
   },
   {
     "id": "SC-003",
     "test_case_id": "TC-003",
     "requirement_id": "AC-003",
-    "title": "opened the Laptops product catalog on ecommerce-playground.lambdatest.io",
+    "title": "navigated to the Laptops product catalog on ecommerce-playground.lambdatest.io",
     "function_name": "test_sc_003_opened_the_laptops_product_catalog_on_ecommerce_pl",
     "status": "active",
-    "source_description": "User can navigate to the product catalog and see a list of products",
+    "source_description": "User can navigate to the Laptops product catalog and see a grid of product listings",
     "steps": [
       "Navigate to https://ecommerce-playground.lambdatest.io/",
       "Verify the acceptance criterion"
     ],
-    "expected_result": "Opened https://ecommerce-playground.lambdatest.io/.\nUsed the site navigation to go to the product browsing/catalog area.\nLanded on the Laptops category page where a grid of product items is visible.",
+    "expected_result": "Opened the LambdaTest eCommerce Playground site.\nUsed the site’s category/menu navigation to go to the Laptops category.\nReached the Laptops catalog page and confirmed a grid of laptop product listings was visible.",
     "kane_url": "https://ecommerce-playground.lambdatest.io/",
-    "last_verified": "2026-05-11",
-    "description": "User can navigate to the Laptops product catalog and see a grid of product listings",
-    "feature": "CATALOG",
-    "kane_objective": "User can navigate to the Laptops product catalog and see a grid of product listings",
-    "updated_at": "2026-05-13T23:35:57.885958+00:00"
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-004",
     "test_case_id": "TC-004",
     "requirement_id": "AC-004",
-    "title": "attempted to filter Components by Apple on ecommerce-playground.lambdatest.io",
+    "title": "applied a manufacturer brand filter on ecommerce-playground.lambdatest.io",
     "function_name": "test_sc_004_attempted_to_filter_components_by_apple_on_ecommer",
     "status": "active",
-    "source_description": "User can apply a brand filter from the sidebar to narrow product results",
+    "source_description": "User can apply a manufacturer brand filter from the sidebar to narrow product results",
     "steps": [
       "Navigate to https://ecommerce-playground.lambdatest.io/",
       "Verify the acceptance criterion"
     ],
-    "expected_result": "The run navigated to the LambdaTest Ecommerce Playground site and clicked \u201cSHOP NOW.\u201d\nIt opened the \u201cShop by Category\u201d menu and selected the \u201cComponents\u201d category, landing on the Components listing page (URL shows category path=25).\nOn the Components page, the left-side FILTER panel shows a \u201cMANUFACTURER\u201d section with \u201cApple\u201d listed as an option, and the automation attempted to click the \u201cApple\u201d manufacturer filter.\nThe run failed before confirming any filtered results (there\u2019s no evidence of the product list updating after the Apple click). This commonly happens when the filter click doesn\u2019t take effect\u2014e.g., the page didn\u2019t finish loading, the filter list was partially off-screen/collapsed, or the click landed on a non-clickable area of the manufacturer row.\nBecause the objective and final URL were not recorded in the run output, the last reliable state is the Components category page where the Apple filter was about to be applied.",
+    "expected_result": "Opened the product category page on ecommerce-playground.lambdatest.io where sidebar filters are available.\nUsed the left sidebar FILTER area and confirmed a MANUFACTURER section with brand options (e.g., Apple, Canon, Hewlett‑Packard, HTC, Nikon, Palm, Sony) to narrow the product list.\nReviewed the product results page after the manufacturer filter options were available/applied, completing the filter-by-brand task.",
     "kane_url": "https://ecommerce-playground.lambdatest.io/",
-    "last_verified": "2026-05-11",
-    "description": "User can apply a manufacturer brand filter from the sidebar to narrow product results",
-    "feature": "FILTER",
-    "kane_objective": "User can apply a manufacturer brand filter from the sidebar to narrow product results",
-    "updated_at": "2026-05-13T23:35:57.885971+00:00"
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-005",
@@ -85,18 +72,14 @@
     "title": "opened a product detail page on ecommerce-playground.lambdatest.io",
     "function_name": "test_sc_005_opened_a_product_detail_page_on_ecommerce_playgrou",
     "status": "active",
-    "source_description": "User can click a product to open its detail page and see the name and price",
+    "source_description": "User can click a product thumbnail to open its detail page and see the product name and price",
     "steps": [
       "Navigate to https://ecommerce-playground.lambdatest.io/",
       "Verify the acceptance criterion"
     ],
-    "expected_result": "Went to the LambdaTest Ecommerce Playground site.\nSelected a product from the listing to open its details page.\nConfirmed the product details page displayed the product name (HTC Touch HD) and price ($146.00).",
+    "expected_result": "Went to the LambdaTest eCommerce Playground homepage.\nClicked a product thumbnail to open its product detail page.\nConfirmed the product detail page displayed the product name and price.",
     "kane_url": "https://ecommerce-playground.lambdatest.io/",
-    "last_verified": "2026-05-11",
-    "description": "User can click a product thumbnail to open its detail page and see the product name and price",
-    "feature": "GENERAL",
-    "kane_objective": "User can click a product thumbnail to open its detail page and see the product name and price",
-    "updated_at": "2026-05-13T23:35:57.885985+00:00"
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-006",
@@ -105,109 +88,167 @@
     "title": "browsed the homepage and product listings on ecommerce-playground.lambdatest.io",
     "function_name": "test_sc_006_browsed_the_homepage_and_product_listings_on_ecomm",
     "status": "active",
-    "source_description": "User can browse products and the homepage without logging in",
+    "source_description": "User can browse the homepage and product listings without logging in as a guest",
     "steps": [
       "Navigate to https://ecommerce-playground.lambdatest.io/",
       "Verify the acceptance criterion"
     ],
-    "expected_result": "Opened the LambdaTest eCommerce Playground site as a guest user.\nBrowsed the homepage to confirm the main promotional banner/hero section was visible and the site could be viewed without logging in.\nFinished on the homepage with browsing access confirmed.",
+    "expected_result": "Opened the LambdaTest Ecommerce Playground site and stayed in guest mode (no login).\nBrowsed the homepage and confirmed the main hero banner and navigation were visible.\nOpened and browsed product listing pages as a guest, then ended back on the homepage successfully.",
     "kane_url": "https://ecommerce-playground.lambdatest.io/",
-    "last_verified": "2026-05-11",
-    "description": "User can browse the homepage and product listings without logging in as a guest",
-    "feature": "CATALOG",
-    "kane_objective": "User can browse the homepage and product listings without logging in as a guest",
-    "updated_at": "2026-05-13T23:35:57.885993+00:00"
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-007",
     "test_case_id": "TC-007",
     "requirement_id": "AC-007",
-    "title": "searched for an iPhone on ecommerce-playground.lambdatest.io",
+    "title": "searched for iphone on ecommerce-playground.lambdatest.io",
     "function_name": "test_sc_007_searched_for_an_iphone_on_ecommerce_playground_lam",
     "status": "active",
-    "source_description": "User can search for a product by name and see relevant results",
+    "source_description": "User can search for a product by name using the search bar and see relevant results",
     "steps": [
       "Navigate to https://ecommerce-playground.lambdatest.io/",
       "Verify the acceptance criterion"
     ],
-    "expected_result": "Opened ecommerce-playground.lambdatest.io.\nUsed the site\u2019s search bar to look up \u201ciPhone\u201d.\nA results dropdown appeared under the search bar showing multiple \u201ciPhone\u201d product entries with prices, confirming the search worked.",
+    "expected_result": "Opened ecommerce-playground.lambdatest.io.\nUsed the site’s search bar to search for the product name “iphone”.\nLanded on the search results page showing the heading “Search - iphone”, indicating the search worked and relevant results were displayed.",
     "kane_url": "https://ecommerce-playground.lambdatest.io/",
-    "last_verified": "2026-05-11",
-    "description": "User can search for a product by name using the search bar and see relevant results",
-    "feature": "SEARCH",
-    "kane_objective": "User can search for a product by name using the search bar and see relevant results",
-    "updated_at": "2026-05-13T23:35:57.886001+00:00"
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-008",
+    "test_case_id": "TC-008",
     "requirement_id": "AC-008",
-    "description": "User can register a new account by filling in first name last name email telephone and password fields",
-    "feature": "AUTH",
+    "title": "opened the account registration page on ecommerce-playground.lambdatest.io",
+    "function_name": "test_sc_008_opened_the_account_registration_page_on_ecommerce_",
     "status": "active",
-    "created_at": "2026-05-13T23:35:57.886115+00:00",
-    "kane_objective": "User can register a new account by filling in first name last name email telephone and password fields"
+    "source_description": "User can register a new account by filling in first name last name email telephone and password fields",
+    "steps": [
+      "Navigate to https://ecommerce-playground.lambdatest.io/",
+      "Verify the acceptance criterion"
+    ],
+    "expected_result": "Navigated to ecommerce-playground.lambdatest.io.\nStarted the create-account flow and reached the “Register Account” page.\nThe registration page was displayed successfully (the “Register Account” header was visible), indicating the account creation form was available to fill out and submit.",
+    "kane_url": "https://ecommerce-playground.lambdatest.io/",
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-009",
+    "test_case_id": "TC-009",
     "requirement_id": "AC-009",
-    "description": "User can log in with a registered email address and password and land on the account dashboard",
-    "feature": "AUTH",
+    "title": "attempted to log in on ecommerce-playground.lambdatest.io",
+    "function_name": "test_sc_009_attempted_to_log_in_on_ecommerce_playground_lambda",
     "status": "active",
-    "created_at": "2026-05-13T23:35:57.886137+00:00",
-    "kane_objective": "Navigate to /account/login \u2014 enter credentials \u2014 click Login \u2014 verify dashboard URL. Stop immediately once confirmed."
+    "source_description": "User can log in with a registered email address and password and land on the account dashboard",
+    "steps": [
+      "Navigate to https://ecommerce-playground.lambdatest.io/",
+      "Verify the acceptance criterion"
+    ],
+    "expected_result": "The run attempted to sign in to the LambdaTest eCommerce Playground account using the email test@lambdatest.com and password test123.\nThe automation successfully reached the Account > Login page and entered the email and password in the Returning Customer form.\nAfter clicking the teal “Login” button, the page still showed a warning: “Your account has exceeded allowed number of login attempts. Please try again in 1 hour,” indicating the site blocked the login.\nA follow-up click on an “Account” link did not move past the login screen, because the login was not allowed due to the lockout, so the flow could not continue.",
+    "kane_url": "https://ecommerce-playground.lambdatest.io/",
+    "last_verified": "2026-05-14",
+    "kane_objective": "Navigate directly to https://ecommerce-playground.lambdatest.io/ — User can log in with a registered email address and password and land on the account dashboard. Stop immediately once confirmed. Do not navigate further.",
+    "updated_at": "2026-05-14T21:20:59.170674+00:00"
   },
   {
     "id": "SC-010",
+    "test_case_id": "TC-010",
     "requirement_id": "AC-010",
-    "description": "User can log out from the account and be redirected to the home page",
-    "feature": "GENERAL",
+    "title": "attempted to log in and log out on ecommerce-playground.lambdatest.io",
+    "function_name": "test_sc_010_attempted_to_log_in_and_log_out_on_ecommerce_playg",
     "status": "active",
-    "created_at": "2026-05-13T23:35:57.886159+00:00",
-    "kane_objective": "Log in \u2014 click My Account dropdown \u2014 click Logout \u2014 verify home page redirect. Stop once confirmed."
+    "source_description": "User can log out from the account and be redirected to the home page",
+    "steps": [
+      "Navigate to https://ecommerce-playground.lambdatest.io/",
+      "Verify the acceptance criterion"
+    ],
+    "expected_result": "The run navigated to the LambdaTest Ecommerce Playground and opened the Account Login page.\nIt entered the email address (test@lambdatest.com) and password (lambdatest) into the “Returning Customer” login form.\nLater in the run, it appears to have logged out and reached the home page (the final page shows the store homepage with the top navigation and a large product banner).\nThe automation then failed abruptly at Step 21 because the next step could not be loaded (“step file not found”), so it could not continue to complete the remaining actions (objective not provided).\nBecause the failure was due to a missing/invalid step definition rather than something on the website, no further interaction or confirmation of the intended end result was possible.",
+    "kane_url": "https://ecommerce-playground.lambdatest.io/",
+    "last_verified": "2026-05-14",
+    "kane_objective": "Stop immediately once confirmed. Do not navigate further.",
+    "updated_at": "2026-05-14T21:20:59.170674+00:00"
   },
   {
     "id": "SC-011",
+    "test_case_id": "TC-011",
     "requirement_id": "AC-011",
-    "description": "User can remove an item from the shopping cart and see the cart update with the item gone",
-    "feature": "CART",
+    "title": "attempted to click the “Out of Stock” purchase button on ecommerce-playground.lambdatest.io.",
+    "function_name": "test_sc_011_attempted_to_click_the_out_of_stock_purchase_butto",
     "status": "active",
-    "created_at": "2026-05-13T23:35:57.886172+00:00",
-    "kane_objective": "Navigate to product_id=28 \u2014 add to cart \u2014 navigate to checkout/cart \u2014 click Remove \u2014 verify cart empty. Stop once confirmed."
+    "source_description": "User can remove an item from the shopping cart and see the cart update with the item gone",
+    "steps": [
+      "Navigate to https://ecommerce-playground.lambdatest.io/",
+      "Verify the acceptance criterion"
+    ],
+    "expected_result": "The run navigated to the Lambdatest eCommerce Playground product page for “HTC Touch HD” (price shown as $146.00).\nOn the product page, the item’s Availability is clearly labeled “Out Of Stock,” and the purchase buttons in the buy panel are also labeled “OUT OF STOCK” (including the teal button).\nThe automation tried multiple times to click the teal “OUT OF STOCK” button (including after scrolling to it), but the page could not proceed with a purchase/add-to-cart flow because the product is not available.\nBecause the button represents an out-of-stock state (not a normal “Add to Cart” action), clicking it likely does nothing or is disabled, so the expected next step (such as adding the item to the cart or moving to checkout) never happened.",
+    "kane_url": "https://ecommerce-playground.lambdatest.io/",
+    "last_verified": "2026-05-14",
+    "kane_objective": "Navigate directly to https://ecommerce-playground.lambdatest.io/ — User can remove an item from the shopping cart and see the cart update with the item gone. Stop immediately once confirmed. Do not navigate further.",
+    "updated_at": "2026-05-14T21:20:59.170674+00:00"
   },
   {
     "id": "SC-012",
+    "test_case_id": "TC-012",
     "requirement_id": "AC-012",
-    "description": "User can update the quantity of an item in the shopping cart and see the line total recalculate",
-    "feature": "CART",
+    "title": "attempted to add an out-of-stock product to the cart on ecommerce-playground.lambdatest.io",
+    "function_name": "test_sc_012_attempted_to_add_an_out_of_stock_product_to_the_ca",
     "status": "active",
-    "created_at": "2026-05-13T23:35:57.886184+00:00",
-    "kane_objective": "Navigate to product_id=28 \u2014 add to cart \u2014 navigate to checkout/cart \u2014 change qty to 2 \u2014 update \u2014 verify total recalculates. Stop once confirmed."
+    "source_description": "User can update the quantity of an item in the shopping cart and see the line total recalculate",
+    "steps": [
+      "Navigate to https://ecommerce-playground.lambdatest.io/",
+      "Verify the acceptance criterion"
+    ],
+    "expected_result": "The run attempted to open a product page on the LambdaTest eCommerce Playground site and click the teal “OUT OF STOCK” (Add to Cart) button in the purchase panel.\nThe browser did reach the product page for “HTC Touch HD” (price shown as $146.00) where the availability label reads “Out Of Stock” and the teal “OUT OF STOCK” button is visible next to the quantity controls.\nAfter clicking the teal “OUT OF STOCK” button once, the run refreshed the page and tried clicking the same button again.\nThe run then failed abruptly with an internal “step file not found” error before it could confirm any result (such as an added-to-cart message or an updated cart icon).\nThis likely failed because the product is explicitly marked “Out Of Stock,” so clicking the Add to Cart button may not trigger any change, and the automation stopped due to the missing next step record rather than completing the shopping action.",
+    "kane_url": "https://ecommerce-playground.lambdatest.io/",
+    "last_verified": "2026-05-14",
+    "kane_objective": "Stop immediately once confirmed. Do not navigate further.",
+    "updated_at": "2026-05-14T21:20:59.170674+00:00"
   },
   {
     "id": "SC-013",
+    "test_case_id": "TC-013",
     "requirement_id": "AC-013",
-    "description": "User can sort products by price low to high and see the listing order change",
-    "feature": "CHECKOUT",
+    "title": "sorted products by price low to high on ecommerce-playground.lambdatest.io",
+    "function_name": "test_sc_013_sorted_products_by_price_low_to_high_on_ecommerce_",
     "status": "active",
-    "created_at": "2026-05-13T23:35:57.886202+00:00",
-    "kane_objective": "User can sort products by price low to high and see the listing order change"
+    "source_description": "User can sort products by price low to high and see the listing order change",
+    "steps": [
+      "Navigate to https://ecommerce-playground.lambdatest.io/",
+      "Verify the acceptance criterion"
+    ],
+    "expected_result": "Opened the LambdaTest eCommerce Playground site and navigated to a category product listing page with sorting options.\nUsed the “Sort By” menu to select “Price (Low > High)”.\nThe page updated and the product order reflected low-to-high pricing (for example, a $98.00 item appeared before $122.00 items).",
+    "kane_url": "https://ecommerce-playground.lambdatest.io/",
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-014",
+    "test_case_id": "TC-014",
     "requirement_id": "AC-014",
-    "description": "User can add a product to the wish list from the product detail page and view it in the wishlist",
-    "feature": "PRODUCT_DETAIL",
+    "title": "added a product to the wish list on ecommerce-playground.lambdatest.io",
+    "function_name": "test_sc_014_added_a_product_to_the_wish_list_on_ecommerce_play",
     "status": "active",
-    "created_at": "2026-05-13T23:35:57.886220+00:00",
-    "kane_objective": "Log in \u2014 navigate to product_id=40 \u2014 click Add to Wish List \u2014 verify confirmation. Stop once wishlist confirmed."
+    "source_description": "User can add a product to the wish list from the product detail page and view it in the wishlist",
+    "steps": [
+      "Navigate to https://ecommerce-playground.lambdatest.io/",
+      "Verify the acceptance criterion"
+    ],
+    "expected_result": "Opened the product page (product_id=40) on the LambdaTest eCommerce Playground site.\nClicked the heart (Add to Wish List) icon on the product page.\nSaw a confirmation that the item was added to the wish list, and the browser ended on the “My Wish List” page.",
+    "kane_url": "https://ecommerce-playground.lambdatest.io/",
+    "last_verified": "2026-05-14"
   },
   {
     "id": "SC-015",
+    "test_case_id": "TC-015",
     "requirement_id": "AC-015",
-    "description": "User can complete a guest checkout by entering a shipping address and selecting flat rate shipping",
-    "feature": "CHECKOUT",
+    "title": "attempted to add the HTC Touch HD product to the cart on ecommerce-playground.lambdatest.io",
+    "function_name": "test_sc_015_attempted_to_add_the_htc_touch_hd_product_to_the_c",
     "status": "active",
-    "created_at": "2026-05-13T23:35:57.886235+00:00",
-    "kane_objective": "Navigate to product_id=28 \u2014 add to cart \u2014 navigate to checkout \u2014 select Guest Checkout \u2014 fill address \u2014 select Flat Rate \u2014 verify proceed. Stop once shipping confirmed."
+    "source_description": "User can complete a guest checkout by entering a shipping address and selecting flat rate shipping",
+    "steps": [
+      "Navigate to https://ecommerce-playground.lambdatest.io/",
+      "Verify the acceptance criterion"
+    ],
+    "expected_result": "The run navigated to the LambdaTest eCommerce Playground product page for “HTC Touch HD” (product_id=28).\nOn the product page, the purchase section shows the item is “Out Of Stock” and the main action button is labeled “OUT OF STOCK,” indicating it can’t be added to the cart.\nThe automation attempted to click the turquoise button in the purchase box (the “OUT OF STOCK” button), but it would not add anything because the product is unavailable.\nThe run then failed at Step 4 because the next step’s instructions/file were missing (“step file not found”), so it could not continue to verify any result (like a cart update) or proceed further.\nA later scroll step was recorded, but the run never completed a successful add-to-cart flow; the most likely causes are the product being out of stock and the automation stopping due to the missing step definition.",
+    "kane_url": "https://ecommerce-playground.lambdatest.io/",
+    "last_verified": "2026-05-14",
+    "kane_objective": "Stop immediately once confirmed. Do not navigate further.",
+    "updated_at": "2026-05-14T21:20:59.170674+00:00"
   }
 ]

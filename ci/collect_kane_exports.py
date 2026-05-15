@@ -35,7 +35,7 @@ BASE_URL = "https://ecommerce-playground.lambdatest.io/"
 _FALLBACK_BODIES: dict[str, str] = {
     # AC-001 / SC-001 — Add to cart
     "AC-001": '''\
-    page.goto("{url}index.php?route=product/product&product_id=28")
+    page.goto("{url}index.php?route=product/product&product_id=47")
     page.wait_for_load_state("domcontentloaded")
     add_btn = page.locator("#button-cart")
     add_btn.wait_for(timeout=15000)
@@ -50,7 +50,7 @@ _FALLBACK_BODIES: dict[str, str] = {
 ''',
     # AC-002 / SC-002 — View cart items
     "AC-002": '''\
-    page.goto("{url}index.php?route=product/product&product_id=28")
+    page.goto("{url}index.php?route=product/product&product_id=47")
     page.wait_for_load_state("domcontentloaded")
     page.locator("#button-cart").wait_for(timeout=15000)
     page.locator("#button-cart").click()
@@ -84,7 +84,7 @@ _FALLBACK_BODIES: dict[str, str] = {
 ''',
     # AC-005 / SC-005 — Product detail page
     "AC-005": '''\
-    page.goto("{url}index.php?route=product/product&product_id=28")
+    page.goto("{url}index.php?route=product/product&product_id=47")
     page.wait_for_load_state("domcontentloaded")
     product_name = page.locator("h1").first
     product_name.wait_for(timeout=15000)
@@ -172,7 +172,7 @@ _FALLBACK_BODIES: dict[str, str] = {
 ''',
     # AC-011 / SC-011 — Remove from cart
     "AC-011": '''\
-    page.goto("{url}index.php?route=product/product&product_id=28")
+    page.goto("{url}index.php?route=product/product&product_id=47")
     page.wait_for_load_state("domcontentloaded")
     page.locator("#button-cart").wait_for(timeout=15000)
     page.locator("#button-cart").click()
@@ -189,7 +189,7 @@ _FALLBACK_BODIES: dict[str, str] = {
 ''',
     # AC-012 / SC-012 — Update quantity
     "AC-012": '''\
-    page.goto("{url}index.php?route=product/product&product_id=28")
+    page.goto("{url}index.php?route=product/product&product_id=47")
     page.wait_for_load_state("domcontentloaded")
     page.locator("#button-cart").wait_for(timeout=15000)
     page.locator("#button-cart").click()
@@ -231,7 +231,7 @@ _FALLBACK_BODIES: dict[str, str] = {
     page.locator("#input-password").fill(lt_pass)
     page.locator("input[value='Login']").click()
     page.wait_for_load_state("domcontentloaded")
-    page.goto("{url}index.php?route=product/product&product_id=28")
+    page.goto("{url}index.php?route=product/product&product_id=47")
     page.wait_for_load_state("domcontentloaded")
     wishlist_btn = page.locator(
         "[data-original-title='Add to Wish List'], "
@@ -249,7 +249,7 @@ _FALLBACK_BODIES: dict[str, str] = {
 ''',
     # AC-015 / SC-015 — Guest checkout
     "AC-015": '''\
-    page.goto("{url}index.php?route=product/product&product_id=28")
+    page.goto("{url}index.php?route=product/product&product_id=47")
     page.wait_for_load_state("domcontentloaded")
     page.locator("#button-cart").wait_for(timeout=15000)
     page.locator("#button-cart").click()

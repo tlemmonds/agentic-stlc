@@ -143,12 +143,12 @@ def make_title(description):
 # Values are task strings passed directly to `kane-cli run`.
 _KANE_TASK_OVERRIDES: dict[str, str] = {
     "add a product to the cart from the product detail page": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=28"
+        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47"
         " — click the Add to Cart button — verify the cart icon in the top navigation shows at least 1 item."
         " Stop immediately once the cart count is updated. Do not navigate further."
     ),
     "open the cart dropdown and see the list of added items": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=28"
+        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47"
         " — click Add to Cart — then click the cart icon in the top-right header to open the cart dropdown"
         " — verify at least one item name and price appears in the dropdown."
         " Stop once the item is visible in the cart dropdown."
@@ -167,20 +167,20 @@ _KANE_TASK_OVERRIDES: dict[str, str] = {
         " Stop once the home page is confirmed."
     ),
     "remove an item from the shopping cart and see the cart update with the item gone": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=28"
-        " — click Add to Cart — then navigate directly to"
-        " https://ecommerce-playground.lambdatest.io/index.php?route=checkout/cart"
-        " — click the Remove button next to the item"
-        " — verify the cart page shows Your shopping cart is empty."
-        " Stop immediately after the empty cart message is confirmed."
+        "This task has FOUR steps and is NOT done until step 4 succeeds. Do not stop early.\n"
+        "Step 1: Open https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47 and click the Add to Cart button.\n"
+        "Step 2: Open https://ecommerce-playground.lambdatest.io/index.php?route=checkout/cart in the same browser tab.\n"
+        "Step 3: On the shopping cart page, find the row for HP LP3065 and click its red Remove button (icon: fa-times, class btn-danger).\n"
+        "Step 4: Wait for the page to refresh and confirm the cart now displays the message 'Your shopping cart is empty!'.\n"
+        "ONLY stop after the empty-cart message in step 4 is visible. If step 4 has not been confirmed, keep going."
     ),
     "update the quantity of an item in the shopping cart and see the line total recalculate": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=28"
-        " — click Add to Cart — then navigate directly to"
-        " https://ecommerce-playground.lambdatest.io/index.php?route=checkout/cart"
-        " — change the quantity input field value to 2 — click the Update button"
-        " — verify the line total price reflects 2 items."
-        " Stop once the recalculated total is visible."
+        "This task has FOUR steps and is NOT done until step 4 succeeds. Do not stop early.\n"
+        "Step 1: Open https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47 and click the Add to Cart button.\n"
+        "Step 2: Open https://ecommerce-playground.lambdatest.io/index.php?route=checkout/cart in the same browser tab.\n"
+        "Step 3: On the shopping cart page, locate the quantity input for HP LP3065. Note the current line-total value, then change the quantity to 2 and click the Update (refresh) button next to the quantity field.\n"
+        "Step 4: Wait for the page to refresh and confirm the line total has changed to a value DIFFERENT from the value you noted in step 3 (it should now reflect 2 × unit price).\n"
+        "ONLY stop after the recalculated line total in step 4 is visible. If step 4 has not been confirmed, keep going."
     ),
     "add a product to the wish list from the product detail page and view it in the wishlist": (
         "Go to https://ecommerce-playground.lambdatest.io/index.php?route=account/login"
@@ -190,7 +190,7 @@ _KANE_TASK_OVERRIDES: dict[str, str] = {
         " Stop once wishlist confirmation is visible."
     ),
     "complete a guest checkout by entering a shipping address and selecting flat rate shipping": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=28"
+        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47"
         " — click Add to Cart — navigate to"
         " https://ecommerce-playground.lambdatest.io/index.php?route=checkout/checkout"
         " — select the Guest Checkout option — fill in the billing address: First Name Test, Last Name User,"
@@ -485,9 +485,21 @@ def main():
         cache_hit = False
     else:
         _configure_kane_project()
-        print(f"[Stage 1] Running KaneAI in parallel (workers=5, {len(criteria)} criteria) — code export enabled...")
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            results = list(executor.map(_run_kane_indexed, enumerate(criteria, start=1)))
+        # Replay-first dispatch: for each AC, the kane_dispatch module either
+        # replays an existing tests/kane/<feature>/<sc>_test.md asset (cheap,
+        # no LLM reasoning) or records a new one (costs Kane tokens). The
+        # decision is logged to reports/replay_decisions.json.
+        from kane_dispatch import dispatch_all  # local import to keep top-level fast
+        username = os.environ.get("LT_USERNAME", "")
+        access_key = os.environ.get("LT_ACCESS_KEY", "")
+        force_re = os.environ.get("FORCE_RE_AUTHOR", "false").lower() == "true"
+        print(
+            f"[Stage 1] Test.md dispatch — workers=5, {len(criteria)} criteria, "
+            f"force_re_author={force_re}"
+        )
+        results = dispatch_all(
+            criteria, username=username, access_key=access_key, max_workers=5,
+        )
         cache_hit = False
 
     analyzed = []
@@ -509,6 +521,8 @@ def main():
             "kane_links": [test_url] if test_url else [],
             "kane_session_id": kane.get("session_id", ""),
             "kane_code_export_dir": kane.get("code_export_dir", ""),
+            "kane_asset_path": kane.get("asset_path", ""),
+            "kane_replay_decision": kane.get("replay_decision", ""),
             "last_analyzed": today,
         }
         analyzed.append(item)

@@ -1,0 +1,9 @@
+{
+  "sc_id": "SC-015",
+  "requirement_id": "AC-015",
+  "feature": "general",
+  "description_hash": "10725ae8cfd3",
+  "description": "User can complete a guest checkout by entering a shipping address and selecting flat rate shipping",
+  "objective": "Stop immediately once confirmed. Do not navigate further.",
+  "asset": "sc_015_attempted_to_add_the_htc_touch_hd_product_to_the_cart_on_eco_test.md"
+}

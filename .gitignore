@@ -20,6 +20,12 @@ hyperexecute.exe
 .testmu/
 screenshots/
 
+# Kane testmd per-machine replay cache (created by `kane-cli testmd run`)
+tests/kane/**/output-*/
+
+# Kane Playwright code-export cache (regenerated each run from _test.md replays)
+tests/playwright/exported/
+
 # HyperExecute runtime artifacts
 .hyperexecute/
 hyperexecute-cli.log

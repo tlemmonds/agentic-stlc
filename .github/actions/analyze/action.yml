@@ -127,13 +127,19 @@ runs:
         print(f"CACHE HIT — reusing Kane results ({len(data)} requirements, {passed} passed)")
         PYEOF
 
-    - name: "Run KaneAI (live verification)"
+    - name: "Run KaneAI (live verification — replay-first dispatch)"
       if: steps.kane-cache.outputs.cache-hit != 'true' && inputs.demo-mode != 'true'
       shell: bash
       env:
         LT_USERNAME: ${{ inputs.lt-username }}
         LT_ACCESS_KEY: ${{ inputs.lt-access-key }}
         GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        # Forwarded from the workflow's `regenerate_tests` input. When true,
+        # ci/replay_policy.py issues `rerecord` for every scenario instead of
+        # `replay`. Default false → cheap, deterministic replays.
+        FORCE_RE_AUTHOR: ${{ env.FORCE_RE_AUTHOR || 'false' }}
+        KANE_PROJECT_ID: ${{ inputs.kane-project-id }}
+        KANE_FOLDER_ID:  ${{ inputs.kane-folder-id }}
       run: python ci/analyze_requirements.py
 
     - name: "Validate Stage 1 output"

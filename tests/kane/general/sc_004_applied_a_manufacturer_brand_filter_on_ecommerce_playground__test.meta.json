@@ -1,0 +1,9 @@
+{
+  "sc_id": "SC-004",
+  "requirement_id": "AC-004",
+  "feature": "general",
+  "description_hash": "265d075b7d47",
+  "description": "User can apply a manufacturer brand filter from the sidebar to narrow product results",
+  "objective": "User can apply a manufacturer brand filter from the sidebar to narrow product results",
+  "asset": "sc_004_applied_a_manufacturer_brand_filter_on_ecommerce_playground__test.md"
+}

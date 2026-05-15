@@ -1,0 +1,9 @@
+{
+  "sc_id": "SC-003",
+  "requirement_id": "AC-003",
+  "feature": "general",
+  "description_hash": "8062407e775a",
+  "description": "User can navigate to the Laptops product catalog and see a grid of product listings",
+  "objective": "User can navigate to the Laptops product catalog and see a grid of product listings",
+  "asset": "sc_003_navigated_to_the_laptops_product_catalog_on_ecommerce_playgr_test.md"
+}

@@ -1,0 +1,9 @@
+{
+  "sc_id": "SC-010",
+  "requirement_id": "AC-010",
+  "feature": "general",
+  "description_hash": "1caba0ca6ca9",
+  "description": "User can log out from the account and be redirected to the home page",
+  "objective": "Stop immediately once confirmed. Do not navigate further.",
+  "asset": "sc_010_attempted_to_log_in_and_log_out_on_ecommerce_playground_lamb_test.md"
+}

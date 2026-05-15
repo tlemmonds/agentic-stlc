@@ -45,41 +45,104 @@ The architecture is **event-driven**. The AI orchestrator does not poll APIs, wa
 
 ## Architecture Overview
 
+The pipeline is **replay-first**: every acceptance criterion produces a durable
+`tests/kane/<feature>/sc_xxx_*_test.md` asset on its first run. Subsequent runs
+**replay** that asset (no Kane planning, near-zero LLM tokens). Re-authoring
+happens only when the AC's description hash changes or an operator forces it.
+
+```mermaid
+flowchart TB
+    REQ["requirements/*.txt<br/>(plain-English ACs)"]
+    POLICY{{"ci/replay_policy.py<br/>per-AC decision"}}
+    REPLAY["kane-cli run<br/>tests/kane/&lt;feat&gt;/sc_*_test.md<br/>(replay — no LLM planning)"]
+    RECORD["kane-cli run --name &lt;slug&gt;<br/>--code-export python<br/>(record — costs Kane tokens)"]
+    PERSIST["persist asset<br/>+ description_hash<br/>+ Playwright export"]
+    EXPORT["tests/playwright/exported/&lt;sc&gt;/<br/>(Kane-derived Playwright)"]
+    COLLECT["ci/collect_kane_exports.py<br/>assemble test_powerapps.py"]
+    HE["HyperExecute<br/>5 parallel VMs<br/>chrome + firefox"]
+    TRACE["traceability matrix<br/>+ release verdict"]
+
+    REQ --> POLICY
+    POLICY -- "asset exists,<br/>hash matches" --> REPLAY
+    POLICY -- "missing or<br/>hash drifted" --> RECORD
+    RECORD --> PERSIST
+    PERSIST --> REPLAY
+    REPLAY --> EXPORT
+    EXPORT --> COLLECT
+    COLLECT --> HE
+    HE --> TRACE
+
+    classDef cheap fill:#d4edda,stroke:#28a745,color:#155724;
+    classDef expensive fill:#fff3cd,stroke:#ffc107,color:#856404;
+    class REPLAY,EXPORT,COLLECT,HE,TRACE cheap;
+    class RECORD,PERSIST expensive;
 ```
-requirements/*.txt              (plain-English acceptance criteria)
+
+Two paths, one pipeline:
+
+| Path | When | Cost | Determinism |
+|---|---|---|---|
+| **Replay** (green) | Asset exists and `description_hash` matches | ~0 Kane tokens; 1 browser session per AC | High — asset replays the recorded steps |
+| **Record** (yellow) | New AC, or AC text changed, or `FORCE_RE_AUTHOR=true` | Full Kane authoring tokens; 1 browser session per AC | Variable — Kane plans the run, then asset is persisted for future replay |
+
+**Test asset structure:**
+
+```
+tests/kane/
+├── helpers/                 ← @import targets only (validated as helpers)
+│   ├── add_to_cart_test.md
+│   ├── go_to_cart_page_test.md
+│   ├── m365_login_test.md
+│   └── open_product_test.md
+├── cart/
+│   ├── sc_001_add_to_cart_test.md
+│   ├── sc_002_open_cart_dropdown_test.md
+│   ├── sc_011_remove_from_cart_test.md
+│   └── sc_012_update_quantity_test.md
+├── catalog/   ├── sc_003_…  ├── sc_004_…  ├── sc_005_…  ├── sc_006_…
+├── search/    └── sc_007_…
+├── auth/      ├── sc_008_…  ├── sc_009_…  └── sc_010_…
+├── checkout/  └── sc_015_…
+└── wishlist/  └── sc_014_…
+```
+
+Each `*_test.md` is YAML frontmatter (`sc_id`, `requirement_id`, `feature`,
+`description_hash`, `description`, `objective`) followed by `## Step …` headings
+that Kane CLI 0.3.1 replays one step at a time. Helpers are pulled in with
+`@import ../helpers/foo_test.md` (Kane refuses to import non-helper assets, so
+the boundary is enforced by the CLI itself).
+
+```
+requirements/*.txt   (plain-English acceptance criteria)
         │
         ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  STAGE 1 · KaneAI Functional Verification           [Job: analyze]  │
 │                                                                     │
-│  kane-cli run  ×N criteria  (5 parallel workers)                    │
-│  ├── Drives real Chrome browser on LambdaTest CDP                   │
-│  ├── Exports Python Playwright code per criterion                   │
-│  └── Emits: passed/failed, one_liner, steps, session link           │
-│                                                                     │
-│  Output: requirements/analyzed_requirements.json                    │
+│  ci/kane_dispatch.py per-AC:                                        │
+│    decide() → replay | record | rerecord | skip                     │
+│  ├── replay  → kane-cli run tests/kane/<feat>/sc_*_test.md          │
+│  ├── record  → kane-cli run "<objective>" --name <slug>             │
+│  │             persist asset + Playwright code-export               │
+│  └── outputs: requirements/analyzed_requirements.json               │
+│              reports/replay_decisions.json                          │
 └───────────────────────────┬─────────────────────────────────────────┘
-                            │  artifact upload → Job 2 download
+                            │
                             ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  STAGES 2–9 · Orchestrator                       [Job: orchestrate] │
 │  ci/agent.py                                                        │
 │                                                                     │
 │  Stage 2 · Scenario Sync        Stage 6 · Result Aggregation        │
-│  Stage 3 · Playwright Gen       Stage 7 · Traceability              │
-│  Stage 4 · Test Selection       Stage 8 · Release Recommendation    │
-│  Stage 5 · HyperExecute         Stage 8a · Failure Intelligence     │
-│                                 Stage 8b · Self-Healing             │
-│                                 Stage 9 · GitHub Summary            │
-│                                                                     │
-│  Advisory (non-blocking): coverage, quality gates, RCA, metrics     │
-│                                                                     │
-│  notify_agent.py → reports/execution_payload.json  ← ONE event      │
+│  Stage 3 · Playwright Assembly  Stage 7 · Traceability              │
+│      ← Kane code-exports +      Stage 8 · Release Recommendation    │
+│        fallback bodies          Stage 8a · Failure Intelligence     │
+│  Stage 4 · Test Selection       Stage 8b · Self-Healing             │
+│  Stage 5 · HyperExecute         Stage 9 · GitHub Summary            │
 └─────────────────────────────────────────────────────────────────────┘
                             │
                             ▼
-              Chat Orchestrator receives compact payload
-              (~1K tokens) and renders the full report
+                Compact completion payload (~1K tokens)
 ```
 
 **Requirement to verdict — execution flow:**

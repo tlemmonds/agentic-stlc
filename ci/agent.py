@@ -126,7 +126,8 @@ from playwright.sync_api import expect
 
 '''
 
-# Product ID 28 (HTC Touch HD, $146.00) has no required options — safe for Add to Cart tests.
+# Product ID 47 (HP LP3065) is in stock with no required options — safe for Add to Cart tests.
+# product_id=28 (HTC Touch HD) was retired here on 2026-05-15 after going out of stock on the AUT.
 _ECOM = "https://ecommerce-playground.lambdatest.io"
 
 def _ec(path: str) -> str:
@@ -136,30 +137,34 @@ def _ec(path: str) -> str:
 PLAYWRIGHT_BODIES = {
     # AC-001: Add a product to the cart from the product detail page and see cart count update
     "SC-001": (
-        '    page.goto(' + _ec('/index.php?route=product/product&product_id=28') + ')\n'
+        '    page.goto(' + _ec('/index.php?route=product/product&product_id=47') + ')\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=30000)\n'
         '    add_btn = page.locator("#button-cart")\n'
         '    add_btn.wait_for(timeout=15000)\n'
+        '    cart_btn = page.locator("#cart > button").first\n'
+        '    cart_btn.wait_for(timeout=10000)\n'
+        '    before = cart_btn.inner_text().strip()\n'
         '    add_btn.click()\n'
-        '    page.wait_for_timeout(1500)\n'
-        '    cart_indicator = page.locator("#cart button span, #cart-total")\n'
-        '    assert cart_indicator.count() > 0, "Cart indicator not found after adding product"'
+        '    expect(cart_btn).not_to_have_text(before, timeout=10000)\n'
+        '    after = cart_btn.inner_text().strip()\n'
+        '    assert after != before, f"Cart text did not change after Add to Cart (before={before!r}, after={after!r})"\n'
+        '    assert "0 item" not in after, f"Cart still shows 0 items after Add to Cart: {after!r}"'
     ),
 
     # AC-002: Open the cart and see the list of added items with names and prices
     "SC-002": (
-        '    page.goto(' + _ec('/index.php?route=product/product&product_id=28') + ')\n'
+        '    page.goto(' + _ec('/index.php?route=product/product&product_id=47') + ')\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=30000)\n'
         '    page.locator("#button-cart").wait_for(timeout=15000)\n'
-        '    page.locator("#button-cart").click()\n'
-        '    page.wait_for_timeout(1500)\n'
-        '    cart_btn = page.locator("#cart > button")\n'
+        '    cart_btn = page.locator("#cart > button").first\n'
         '    cart_btn.wait_for(timeout=10000)\n'
+        '    before = cart_btn.inner_text().strip()\n'
+        '    page.locator("#button-cart").click()\n'
+        '    expect(cart_btn).not_to_have_text(before, timeout=10000)\n'
         '    cart_btn.click()\n'
-        '    page.wait_for_timeout(1000)\n'
-        '    cart_items = page.locator("#cart .text-left a")\n'
+        '    cart_items = page.locator("#cart .text-left a, #cart table img, #cart .table img")\n'
         '    cart_items.first.wait_for(timeout=10000)\n'
-        '    assert cart_items.count() > 0, "No items visible in cart dropdown"'
+        '    assert cart_items.count() > 0, "No items visible in cart dropdown after add"'
     ),
 
     # AC-003: Navigate to the product catalog and see a list of products
@@ -186,7 +191,7 @@ PLAYWRIGHT_BODIES = {
 
     # AC-005: Click a product to open its detail page and see the name and price
     "SC-005": (
-        '    page.goto(' + _ec('/index.php?route=product/product&product_id=28') + ')\n'
+        '    page.goto(' + _ec('/index.php?route=product/product&product_id=47') + ')\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=30000)\n'
         '    product_name = page.locator("h1").first\n'
         '    product_name.wait_for(timeout=15000)\n'
@@ -258,41 +263,50 @@ PLAYWRIGHT_BODIES = {
         '    assert logout_link.count() > 0, "Logout link not visible in account dropdown"'
     ),
 
-    # AC-011: Remove item from cart — add product_id=28 (no required options), navigate to cart, remove it
+    # AC-011: Remove item from cart — add product_id=47 (no required options), navigate to cart, remove it
     "SC-011": (
-        '    page.goto(' + _ec('/index.php?route=product/product&product_id=28') + ')\n'
+        '    page.goto(' + _ec('/index.php?route=product/product&product_id=47') + ')\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=30000)\n'
         '    add_btn = page.locator("#button-cart")\n'
         '    add_btn.wait_for(timeout=15000)\n'
+        '    cart_btn = page.locator("#cart > button").first\n'
+        '    cart_btn.wait_for(timeout=10000)\n'
+        '    before = cart_btn.inner_text().strip()\n'
         '    add_btn.click()\n'
-        '    page.wait_for_timeout(1500)\n'
+        '    expect(cart_btn).not_to_have_text(before, timeout=10000)\n'
         '    page.goto(' + _ec('/index.php?route=checkout/cart') + ')\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=20000)\n'
-        '    remove_btn = page.locator(".btn-danger").first\n'
+        '    remove_btn = page.locator(".btn-danger, button[aria-label*=\'Remove\'], i.fa-times").first\n'
         '    remove_btn.wait_for(timeout=15000)\n'
         '    remove_btn.click()\n'
+        '    page.wait_for_load_state("domcontentloaded", timeout=15000)\n'
         '    page.wait_for_timeout(1500)\n'
         '    body_text = page.locator("body").inner_text()\n'
-        '    assert "empty" in body_text.lower(), "Cart still has items after remove"'
+        '    assert "empty" in body_text.lower(), f"Cart not empty after remove. body excerpt: {body_text[:300]!r}"'
     ),
 
-    # AC-012: Update cart quantity — add product_id=28, navigate to cart, update qty to 2, verify total changes
+    # AC-012: Update cart quantity — add product_id=47, navigate to cart, update qty to 2, verify total changes
     "SC-012": (
-        '    page.goto(' + _ec('/index.php?route=product/product&product_id=28') + ')\n'
+        '    page.goto(' + _ec('/index.php?route=product/product&product_id=47') + ')\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=30000)\n'
         '    page.locator("#button-cart").wait_for(timeout=15000)\n'
+        '    cart_btn = page.locator("#cart > button").first\n'
+        '    cart_btn.wait_for(timeout=10000)\n'
+        '    before_add = cart_btn.inner_text().strip()\n'
         '    page.locator("#button-cart").click()\n'
-        '    page.wait_for_timeout(1500)\n'
+        '    expect(cart_btn).not_to_have_text(before_add, timeout=10000)\n'
         '    page.goto(' + _ec('/index.php?route=checkout/cart') + ')\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=20000)\n'
         '    qty_input = page.locator("input[name*=\'quantity\']").first\n'
         '    qty_input.wait_for(timeout=15000)\n'
-        '    initial_total = page.locator(".text-right strong").first.inner_text()\n'
+        '    initial_total = page.locator(".text-right strong, td.text-right").first.inner_text().strip()\n'
         '    qty_input.fill("2")\n'
-        '    page.locator(".btn-primary").filter(has_text="Update").first.click()\n'
+        '    update_btn = page.locator("button[data-original-title*=\'Update\'], .btn-primary, button.fa-refresh").first\n'
+        '    update_btn.click()\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=15000)\n'
-        '    updated_total = page.locator(".text-right strong").first.inner_text()\n'
-        '    assert updated_total != initial_total, "Line total did not recalculate after quantity update"'
+        '    page.wait_for_timeout(1500)\n'
+        '    updated_total = page.locator(".text-right strong, td.text-right").first.inner_text().strip()\n'
+        '    assert updated_total != initial_total, f"Line total did not recalculate (before={initial_total!r}, after={updated_total!r})"'
     ),
 
     # AC-013: Sort products by price low-to-high and verify order changes
@@ -323,7 +337,7 @@ PLAYWRIGHT_BODIES = {
 
     # AC-015: Guest checkout — add to cart then verify guest checkout option is available at checkout
     "SC-015": (
-        '    page.goto(' + _ec('/index.php?route=product/product&product_id=28') + ')\n'
+        '    page.goto(' + _ec('/index.php?route=product/product&product_id=47') + ')\n'
         '    page.wait_for_load_state("domcontentloaded", timeout=30000)\n'
         '    page.locator("#button-cart").wait_for(timeout=15000)\n'
         '    page.locator("#button-cart").click()\n'
@@ -504,11 +518,13 @@ def validate_test_selection(selection_file: str = "reports/pytest_selection.txt"
 # ── Stage 5: Run HyperExecute ──────────────────────────────────────────────
 def run_hyperexecute() -> str:
     # On Windows the binary ships as hyperexecute.exe; on Linux it has no extension.
-    cli = "hyperexecute.exe" if sys.platform == "win32" else "./hyperexecute"
+    cli_name = "hyperexecute.exe" if sys.platform == "win32" else "hyperexecute"
     cwd = Path(".").resolve()
-    print(f"[hyperexecute] cwd={cwd}  platform={sys.platform}  binary_exists={Path(cli).exists()}")
+    cli_path = cwd / cli_name
+    cli = str(cli_path) if sys.platform == "win32" else f"./{cli_name}"
+    print(f"[hyperexecute] cwd={cwd}  platform={sys.platform}  binary_exists={cli_path.exists()}")
 
-    if not Path(cli).exists():
+    if not cli_path.exists():
         print("[hyperexecute] binary not found — skipping HyperExecute stage")
         return ""
 
@@ -530,7 +546,7 @@ def run_hyperexecute() -> str:
     cmd = [cli, "--user", LT_USERNAME, "--key", LT_ACCESS_KEY, "--config", "hyperexecute.yaml"]
     print(f"[hyperexecute] starting — cmd: {' '.join(cmd[:3])} ...")
     t0 = time.monotonic()
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, encoding="utf-8", errors="replace")
     elapsed = round(time.monotonic() - t0, 1)
     combined = result.stdout + result.stderr
 

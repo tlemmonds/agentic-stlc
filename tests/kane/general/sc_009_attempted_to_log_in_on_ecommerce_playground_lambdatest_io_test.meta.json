@@ -1,0 +1,9 @@
+{
+  "sc_id": "SC-009",
+  "requirement_id": "AC-009",
+  "feature": "general",
+  "description_hash": "8d2025a7a4fd",
+  "description": "User can log in with a registered email address and password and land on the account dashboard",
+  "objective": "Navigate directly to https://ecommerce-playground.lambdatest.io/ \u2014 User can log in with a registered email address and password and land on the account dashboard. Stop immediately once confirmed. Do not navigate further.",
+  "asset": "sc_009_attempted_to_log_in_on_ecommerce_playground_lambdatest_io_test.md"
+}
