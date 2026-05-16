@@ -1,0 +1,230 @@
+{
+  "summary": {
+    "total_requirements": 7,
+    "by_confidence_level": {
+      "HIGH": 4,
+      "MEDIUM": 0,
+      "LOW": 3
+    },
+    "high_confidence_count": 4,
+    "critical_gap_count": 3,
+    "missing_negative_coverage": 7,
+    "missing_edge_case_coverage": 7,
+    "kane_failed_requirements": 3,
+    "no_mobile_coverage": 7,
+    "quality_signals": {
+      "confidence_gate_passed": false,
+      "high_criticality_low_confidence": [],
+      "missing_negative_coverage_count": 7
+    },
+    "analyzed_at": "2026-05-16T06:44:30.494188+00:00"
+  },
+  "records": [
+    {
+      "requirement_id": "AC-001",
+      "scenario_id": "SC-001",
+      "scenario_status": "active",
+      "acceptance_criterion": "User can create a task with a title and a due date",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "passed",
+      "confidence_level": "HIGH",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can create a task with a title and a due date' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "LOW"
+      }
+    },
+    {
+      "requirement_id": "AC-002",
+      "scenario_id": "SC-002",
+      "scenario_status": "active",
+      "acceptance_criterion": "User can list all tasks ordered by due date, with overdue tasks pinned to the top",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "failed",
+      "confidence_level": "LOW",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage",
+        "Kane AI functional verification failed"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can list all tasks ordered by due date, with overdue ta' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage; Kane AI functional verification failed",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "MEDIUM"
+      }
+    },
+    {
+      "requirement_id": "AC-003",
+      "scenario_id": "SC-003",
+      "scenario_status": "active",
+      "acceptance_criterion": "User can mark a task as complete",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "passed",
+      "confidence_level": "HIGH",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can mark a task as complete' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "LOW"
+      }
+    },
+    {
+      "requirement_id": "AC-004",
+      "scenario_id": "SC-004",
+      "scenario_status": "active",
+      "acceptance_criterion": "User can edit a task's title or due date",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "passed",
+      "confidence_level": "HIGH",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can edit a task's title or due date' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "LOW"
+      }
+    },
+    {
+      "requirement_id": "AC-005",
+      "scenario_id": "SC-005",
+      "scenario_status": "active",
+      "acceptance_criterion": "User can delete a task",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "skipped",
+      "confidence_level": "HIGH",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can delete a task' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "LOW"
+      }
+    },
+    {
+      "requirement_id": "AC-006",
+      "scenario_id": "SC-006",
+      "scenario_status": "active",
+      "acceptance_criterion": "User can filter the task list by status (active / done / all)",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "failed",
+      "confidence_level": "LOW",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage",
+        "Kane AI functional verification failed"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can filter the task list by status (active / done / all' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage; Kane AI functional verification failed",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "MEDIUM"
+      }
+    },
+    {
+      "requirement_id": "AC-007",
+      "scenario_id": "SC-007",
+      "scenario_status": "updated",
+      "acceptance_criterion": "User can attach a colored label to a task and filter by label",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "failed",
+      "confidence_level": "LOW",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage",
+        "Kane AI functional verification failed"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can attach a colored label to a task and filter by labe' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage; Kane AI functional verification failed",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "MEDIUM"
+      }
+    }
+  ]
+}

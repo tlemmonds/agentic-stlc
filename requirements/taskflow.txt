@@ -1,13 +1,14 @@
 Title: No Secret Formula TaskFlow
 
 As a user
-I want to manage a personal task list
-So that I can track work to do and what's already done
+I want to manage a personal task list with labels
+So that I can track work to do, find it by label, and surface what's overdue
 
 Acceptance Criteria:
 User can create a task with a title and a due date
-User can list all tasks ordered by due date
+User can list all tasks ordered by due date, with overdue tasks pinned to the top
 User can mark a task as complete
 User can edit a task's title or due date
 User can delete a task
 User can filter the task list by status (active / done / all)
+User can attach a colored label to a task and filter by label

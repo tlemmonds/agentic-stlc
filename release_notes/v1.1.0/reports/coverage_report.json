@@ -1,0 +1,337 @@
+{
+  "generated_at": "2026-05-16T06:44:30.733229+00:00",
+  "summary": {
+    "total_requirements": 7,
+    "covered_full": 6,
+    "covered_partial": 1,
+    "uncovered": 0,
+    "coverage_pct": 85.7,
+    "any_coverage_pct": 100.0,
+    "negative_coverage_pct": 14.3,
+    "he_coverage_pct": 85.7,
+    "mobile_coverage_pct": 0.0,
+    "android_coverage_pct": 0.0,
+    "flaky_count": 0,
+    "high_risk_count": 0,
+    "medium_risk_count": 3,
+    "missing_scenario_types": 2
+  },
+  "requirements": [
+    {
+      "requirement_id": "AC-001",
+      "description": "User can create a task with a title and a due date",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "kane_status": "passed",
+      "coverage_status": "FULL",
+      "covered_scenarios": [
+        "SC-001"
+      ],
+      "missing_scenarios": [],
+      "execution_status": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "data_unavailable": 0,
+        "flaky": 0
+      },
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "security": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true,
+        "api_integration": false,
+        "accessibility": false
+      },
+      "browsers_tested": [
+        "chrome",
+        "firefox"
+      ],
+      "functional_coverage_pct": 100.0,
+      "negative_coverage_pct": 100.0,
+      "risk_level": "LOW",
+      "flaky": false,
+      "retry_count": 0
+    },
+    {
+      "requirement_id": "AC-002",
+      "description": "User can list all tasks ordered by due date, with overdue tasks pinned to the top",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "kane_status": "failed",
+      "coverage_status": "FULL",
+      "covered_scenarios": [
+        "SC-002"
+      ],
+      "missing_scenarios": [],
+      "execution_status": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "data_unavailable": 0,
+        "flaky": 0
+      },
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "security": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true,
+        "api_integration": false,
+        "accessibility": false
+      },
+      "browsers_tested": [
+        "chrome",
+        "firefox"
+      ],
+      "functional_coverage_pct": 100.0,
+      "negative_coverage_pct": 100.0,
+      "risk_level": "MEDIUM",
+      "flaky": false,
+      "retry_count": 0
+    },
+    {
+      "requirement_id": "AC-003",
+      "description": "User can mark a task as complete",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "kane_status": "passed",
+      "coverage_status": "FULL",
+      "covered_scenarios": [
+        "SC-003"
+      ],
+      "missing_scenarios": [],
+      "execution_status": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "data_unavailable": 0,
+        "flaky": 0
+      },
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "security": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true,
+        "api_integration": false,
+        "accessibility": false
+      },
+      "browsers_tested": [
+        "chrome",
+        "firefox"
+      ],
+      "functional_coverage_pct": 100.0,
+      "negative_coverage_pct": 100.0,
+      "risk_level": "LOW",
+      "flaky": false,
+      "retry_count": 0
+    },
+    {
+      "requirement_id": "AC-004",
+      "description": "User can edit a task's title or due date",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "kane_status": "passed",
+      "coverage_status": "FULL",
+      "covered_scenarios": [
+        "SC-004"
+      ],
+      "missing_scenarios": [],
+      "execution_status": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "data_unavailable": 0,
+        "flaky": 0
+      },
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "security": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true,
+        "api_integration": false,
+        "accessibility": false
+      },
+      "browsers_tested": [
+        "chrome",
+        "firefox"
+      ],
+      "functional_coverage_pct": 100.0,
+      "negative_coverage_pct": 100.0,
+      "risk_level": "LOW",
+      "flaky": false,
+      "retry_count": 0
+    },
+    {
+      "requirement_id": "AC-005",
+      "description": "User can delete a task",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "kane_status": "skipped",
+      "coverage_status": "FULL",
+      "covered_scenarios": [
+        "SC-005"
+      ],
+      "missing_scenarios": [],
+      "execution_status": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "data_unavailable": 0,
+        "flaky": 0
+      },
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": true,
+        "edge_case": false,
+        "security": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true,
+        "api_integration": false,
+        "accessibility": false
+      },
+      "browsers_tested": [
+        "chrome",
+        "firefox"
+      ],
+      "functional_coverage_pct": 100.0,
+      "negative_coverage_pct": 100.0,
+      "risk_level": "LOW",
+      "flaky": false,
+      "retry_count": 0
+    },
+    {
+      "requirement_id": "AC-006",
+      "description": "User can filter the task list by status (active / done / all)",
+      "feature": "FILTER",
+      "criticality": "LOW",
+      "kane_status": "failed",
+      "coverage_status": "FULL",
+      "covered_scenarios": [
+        "SC-006"
+      ],
+      "missing_scenarios": [
+        {
+          "type": "negative",
+          "description": "Apply filter that produces no results"
+        }
+      ],
+      "execution_status": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "data_unavailable": 0,
+        "flaky": 0
+      },
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "security": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true,
+        "api_integration": false,
+        "accessibility": false
+      },
+      "browsers_tested": [
+        "chrome",
+        "firefox"
+      ],
+      "functional_coverage_pct": 100.0,
+      "negative_coverage_pct": 0.0,
+      "risk_level": "MEDIUM",
+      "flaky": false,
+      "retry_count": 0
+    },
+    {
+      "requirement_id": "AC-007",
+      "description": "User can attach a colored label to a task and filter by label",
+      "feature": "FILTER",
+      "criticality": "LOW",
+      "kane_status": "failed",
+      "coverage_status": "PARTIAL",
+      "covered_scenarios": [
+        "SC-007"
+      ],
+      "missing_scenarios": [
+        {
+          "type": "negative",
+          "description": "Apply filter that produces no results"
+        }
+      ],
+      "execution_status": {
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "data_unavailable": 1,
+        "flaky": 0
+      },
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "security": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": false,
+        "regression": false,
+        "api_integration": false,
+        "accessibility": false
+      },
+      "browsers_tested": [],
+      "functional_coverage_pct": 100.0,
+      "negative_coverage_pct": 0.0,
+      "risk_level": "MEDIUM",
+      "flaky": false,
+      "retry_count": 0
+    }
+  ],
+  "feature_rollup": [
+    {
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "total": 5,
+      "covered": 5,
+      "partial": 0,
+      "none": 0,
+      "failed": 0,
+      "flaky": 0
+    },
+    {
+      "feature": "FILTER",
+      "criticality": "LOW",
+      "total": 2,
+      "covered": 1,
+      "partial": 1,
+      "none": 0,
+      "failed": 0,
+      "flaky": 0
+    }
+  ]
+}

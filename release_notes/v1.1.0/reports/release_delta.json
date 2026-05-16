@@ -1,0 +1,48 @@
+{
+  "from_release": "v1.0.0",
+  "to_release": "v1.1.0",
+  "from_lock_path": "release_notes\\v1.0.0.lock.json",
+  "to_lock_path": "release_notes\\v1.1.0.lock.json",
+  "threshold": 0.5,
+  "generated_at": "2026-05-16T06:44:30.952423+00:00",
+  "summary": {
+    "ADD": 1,
+    "EDIT": 1,
+    "DELETE": 1,
+    "UNMATCHED": 0
+  },
+  "operations": [
+    {
+      "op": "ADD",
+      "item_text": "User can attach a colored label to a task and filter by label",
+      "item_section": "Added",
+      "issue": null,
+      "sc_id": null,
+      "requirement_id": "AC-007",
+      "match_score": 0.0,
+      "rationale": "new requirement; will allocate AC-007 and let Stage 1 record the asset"
+    },
+    {
+      "op": "EDIT",
+      "item_text": "User can list all tasks ordered by due date, with overdue tasks pinned to the top",
+      "item_section": "Changed",
+      "issue": null,
+      "sc_id": "SC-002",
+      "requirement_id": "AC-002",
+      "match_score": 0.667,
+      "rationale": "matched on description similarity (0.67); EDIT will rewrite description and invalidate description_hash so Stage 1 re-records the asset"
+    },
+    {
+      "op": "DELETE",
+      "item_text": "User can delete a task",
+      "item_section": "Removed",
+      "issue": null,
+      "sc_id": "SC-005",
+      "requirement_id": "AC-005",
+      "match_score": 1.0,
+      "rationale": "matched on description similarity (1.00); will mark scenario deprecated (asset preserved)"
+    }
+  ],
+  "unmatched_items": [],
+  "applied": false
+}

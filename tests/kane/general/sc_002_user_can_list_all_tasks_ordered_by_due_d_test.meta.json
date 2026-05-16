@@ -2,9 +2,9 @@
   "sc_id": "SC-002",
   "requirement_id": "AC-002",
   "feature": "general",
-  "description_hash": "3f99f833387e",
-  "description": "User can list all tasks ordered by due date",
-  "objective": "On https://nosecretformula.vercel.app/ \u2014 User can list all tasks ordered by due date",
+  "description_hash": "0e3ec6797528",
+  "description": "User can list all tasks ordered by due date, with overdue tasks pinned to the top",
+  "objective": "On https://nosecretformula.vercel.app/ \u2014 User can list all tasks ordered by due date, with overdue tasks pinned to the top",
   "asset": "sc_002_user_can_list_all_tasks_ordered_by_due_d_test.md",
-  "recorded_at": "2026-05-16T04:16:52.965621+00:00"
+  "recorded_at": "2026-05-16T06:17:49.772459+00:00"
 }

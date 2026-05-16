@@ -1,0 +1,90 @@
+{
+  "he_summary": {
+    "job_id": "ed7b1678-fcf9-47e7-86f3-efe1fe17eddc",
+    "job_link": "https://hyperexecute.lambdatest.com/hyperexecute/task?jobId=ed7b1678-fcf9-47e7-86f3-efe1fe17eddc",
+    "status": "failed",
+    "normalized_status": "FAILED",
+    "parser_status": "api_ok",
+    "total_tasks": 12,
+    "task_pass_count": 12,
+    "task_fail_count": 0,
+    "task_other_count": 0,
+    "selenium_reports_link": "",
+    "runtime_logs_link": ""
+  },
+  "he_tasks": [
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_004_user_can_edit_a_task_s_title_or_due_date",
+      "task_id": "HYPL-1665294-1778913721284094030NAX",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=EEHJI-K9LIV-8APEN-ALOWH"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_001_user_can_create_a_task_with_a_title_and",
+      "task_id": "HYPL-1665294-1778913721270238865ANI",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=GA1K9-SQMIS-WAQRR-VGGYM"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_006_user_can_filter_the_task_list_by_status",
+      "task_id": "HYPL-1665294-1778913721270238865ANI",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=KQN37-E8KWB-GCKDS-U7SOV"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_002_user_can_list_all_tasks_ordered_by_due_d",
+      "task_id": "HYPL-1665294-1778913721274563564SRY",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=KXOJM-KIDJM-FIQZB-FPKIS"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_005_user_can_delete_a_task",
+      "task_id": "HYPL-1665294-1778913721290471656BNI",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=KY2OO-C5P8D-KNU75-ND2RT"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_002_user_can_list_all_tasks_ordered_by_due_d",
+      "task_id": "HYPL-1665294-1778913721274563564SRY",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=OJX20-CJQRD-YMSNU-NTJXX"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_005_user_can_delete_a_task",
+      "task_id": "HYPL-1665294-1778913721290471656BNI",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=P6Z7H-SUTCG-NVWTO-RJHRZ"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_006_user_can_filter_the_task_list_by_status",
+      "task_id": "HYPL-1665294-1778913721270238865ANI",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=QG1IY-IHWJA-MTG2C-1ICBB"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_003_user_can_mark_a_task_as_complete",
+      "task_id": "HYPL-1665294-1778913721279159944WGW",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=WLGNR-ZQLAC-MR65O-B5UCR"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_003_user_can_mark_a_task_as_complete",
+      "task_id": "HYPL-1665294-1778913721279159944WGW",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=ZJAAE-SXWWD-UZFB7-6IE8V"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_001_user_can_create_a_task_with_a_title_and",
+      "task_id": "HYPL-1665294-1778913721270238865ANI",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=ZNFKO-LMRR8-NW79N-4OBOS"
+    },
+    {
+      "name": "tests/playwright/test_powerapps.py::test_sc_004_user_can_edit_a_task_s_title_or_due_date",
+      "task_id": "HYPL-1665294-1778913721284094030NAX",
+      "status": "passed",
+      "session_link": "https://automation.lambdatest.com/test?testID=ZOLFG-X7WQI-CB3QC-WBMQA"
+    }
+  ],
+  "kane_sessions": []
+}

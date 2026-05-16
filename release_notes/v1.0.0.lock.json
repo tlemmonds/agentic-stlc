@@ -1,0 +1,140 @@
+{
+  "release": "v1.0.0",
+  "released_at": "2026-05-16",
+  "from_release": null,
+  "delta_summary": {
+    "ADD": 6,
+    "EDIT": 0,
+    "DELETE": 0,
+    "UNMATCHED": 0
+  },
+  "scenarios": [
+    {
+      "id": "SC-001",
+      "test_case_id": "TC-001",
+      "requirement_id": "AC-001",
+      "title": "created a new task on nosecretformula.vercel.app",
+      "function_name": "test_sc_001_user_can_create_a_task_with_a_title_and",
+      "status": "active",
+      "source_description": "User can create a task with a title and a due date",
+      "steps": [
+        "navigate: navigate to https://nosecretformula.vercel.app/",
+        "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
+        "type: Filled '2026-05-20' via DOM locator: role=textbox[name='Due date']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "analyze: ANALYZE(visual, 'Is there a task listed in the table with a due date shown?', ke",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can create a task with a title and"
+      ],
+      "expected_result": "Opened nosecretformula.vercel.app and went to the task list.\nEntered a task title and selected a due date, then submitted the new task.\nConfirmed the task was added and a due date appears in the tasks table (e.g., 2026-05-20).",
+      "kane_url": "https://nosecretformula.vercel.app/",
+      "last_verified": "2026-05-16"
+    },
+    {
+      "id": "SC-002",
+      "test_case_id": "TC-002",
+      "requirement_id": "AC-002",
+      "title": "sorted tasks by due date on nosecretformula.vercel.app",
+      "function_name": "test_sc_002_user_can_list_all_tasks_ordered_by_due_d",
+      "status": "active",
+      "source_description": "User can list all tasks ordered by due date",
+      "steps": [
+        "navigate: Navigate to the objective website https://nosecretformula.vercel.app/",
+        "type: Filled 'Task due 2026-05-20' via DOM locator: role=textbox[name='Title']",
+        "type: Filled '2026-05-20' via DOM locator: role=textbox[name='Due date']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "type: Filled 'Task due 2026-05-18' via DOM locator: role=textbox[name='Title']",
+        "type: Filled '2026-05-18' via DOM locator: role=textbox[name='Due date']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "analyze: ANALYZE(visual, 'Is the task list table visible with the columns \"Done\", \"Title\"",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can list all tasks ordered by due "
+      ],
+      "expected_result": "Opened https://nosecretformula.vercel.app/ and navigated to the Tasks page.\nOpened the tasks list view and enabled sorting by due date.\nConfirmed the task list table is visible with the columns Done, Title, Due, Status, and Actions at https://nosecretformula.vercel.app/tasks.",
+      "kane_url": "https://nosecretformula.vercel.app/",
+      "last_verified": "2026-05-16"
+    },
+    {
+      "id": "SC-003",
+      "test_case_id": "TC-003",
+      "requirement_id": "AC-003",
+      "title": "marked a task as complete on nosecretformula.vercel.app",
+      "function_name": "test_sc_003_user_can_mark_a_task_as_complete",
+      "status": "active",
+      "source_description": "User can mark a task as complete",
+      "steps": [
+        "navigate: Navigate to https://nosecretformula.vercel.app/",
+        "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "click: Clicked via DOM locator: role=button[name='\u2610']",
+        "analyze: ANALYZE(visual, 'Is there a task row showing its status as \"done\"?', key='__cp_f",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can mark a task as complete"
+      ],
+      "expected_result": "Opened nosecretformula.vercel.app and went to the Tasks page.\nMarked an existing task as complete, and the task list shows a task with status \"done\".",
+      "kane_url": "https://nosecretformula.vercel.app/",
+      "last_verified": "2026-05-16"
+    },
+    {
+      "id": "SC-004",
+      "test_case_id": "TC-004",
+      "requirement_id": "AC-004",
+      "title": "opened the edit page for a task on nosecretformula.vercel.app",
+      "function_name": "test_sc_004_user_can_edit_a_task_s_title_or_due_date",
+      "status": "active",
+      "source_description": "User can edit a task's title or due date",
+      "steps": [
+        "navigate: navigate to https://nosecretformula.vercel.app/ to access the tasks app",
+        "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "click: Clicked via DOM locator: role=link[name='Edit']",
+        "analyze: ANALYZE(visual, 'Is the \"Edit task\" form visible with Title and Due date input f",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can edit a task's title or due dat"
+      ],
+      "expected_result": "Navigated to nosecretformula.vercel.app to find an existing task and edit it.\nOpened the edit page for task #1.\nConfirmed the \u201cEdit task #1\u201d form was visible with Title and Due date fields, ready for changes.\nEnded on the task edit page (https://nosecretformula.vercel.app/tasks/1/edit).",
+      "kane_url": "https://nosecretformula.vercel.app/",
+      "last_verified": "2026-05-16"
+    },
+    {
+      "id": "SC-005",
+      "test_case_id": "TC-005",
+      "requirement_id": "AC-005",
+      "title": "deleted a task on nosecretformula.vercel.app",
+      "function_name": "test_sc_005_user_can_delete_a_task",
+      "status": "active",
+      "source_description": "User can delete a task",
+      "steps": [
+        "navigate: Navigate to https://nosecretformula.vercel.app/ to start the task deletion flow.",
+        "type: Filled 'Test delete task' via DOM locator: role=textbox[name='Title']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=link[name='Edit']",
+        "click: Clicked via DOM locator: role=link[name='Cancel']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "analyze: ANALYZE(visual, 'Is a task list table visible with a \"Delete\" button in the Acti",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can delete a task"
+      ],
+      "expected_result": "Opened nosecretformula.vercel.app and went to the Tasks page.\nFound an existing task in the task list and used its Delete button to remove it.\nEnded on https://nosecretformula.vercel.app/tasks with the task list still visible and delete controls available.",
+      "kane_url": "https://nosecretformula.vercel.app/",
+      "last_verified": "2026-05-16"
+    },
+    {
+      "id": "SC-006",
+      "test_case_id": "TC-006",
+      "requirement_id": "AC-006",
+      "title": "switched the task list status filter on nosecretformula.vercel.app",
+      "function_name": "test_sc_006_user_can_filter_the_task_list_by_status",
+      "status": "active",
+      "source_description": "User can filter the task list by status (active / done / all)",
+      "steps": [
+        "navigate: Navigate to https://nosecretformula.vercel.app/",
+        "analyze: ANALYZE(visual, 'Is the task status filter showing tabs labeled \"Active\", \"Done\"",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can filter the task list by status"
+      ],
+      "expected_result": "Opened https://nosecretformula.vercel.app/.\nUsed the status filter above the task list to switch the view between Active, Done, and All.\nConfirmed the filter control shows the three tabs (Active, Done, All) and the run finished successfully.",
+      "kane_url": "https://nosecretformula.vercel.app/",
+      "last_verified": "2026-05-16"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "force_re_author": false,
+  "decisions": [
+    {
+      "sc_id": "SC-001",
+      "requirement_id": "AC-001",
+      "decision": "replay",
+      "asset_path": "tests\\kane\\general\\sc_001_user_can_create_a_task_with_a_title_and_test.md",
+      "reason": "hash matches recorded asset",
+      "description_hash": "d0a272c9547e"
+    },
+    {
+      "sc_id": "SC-002",
+      "requirement_id": "AC-002",
+      "decision": "rerecord",
+      "asset_path": "tests\\kane\\general\\sc_002_user_can_list_all_tasks_ordered_by_due_d_test.md",
+      "reason": "description hash drifted (3f99f833387e \u2192 0e3ec6797528)",
+      "description_hash": "0e3ec6797528"
+    },
+    {
+      "sc_id": "SC-003",
+      "requirement_id": "AC-003",
+      "decision": "replay",
+      "asset_path": "tests\\kane\\general\\sc_003_user_can_mark_a_task_as_complete_test.md",
+      "reason": "hash matches recorded asset",
+      "description_hash": "d1a6531039d1"
+    },
+    {
+      "sc_id": "SC-004",
+      "requirement_id": "AC-004",
+      "decision": "replay",
+      "asset_path": "tests\\kane\\general\\sc_004_user_can_edit_a_task_s_title_or_due_date_test.md",
+      "reason": "hash matches recorded asset",
+      "description_hash": "48fccefd86ad"
+    },
+    {
+      "sc_id": "SC-005",
+      "requirement_id": "AC-005",
+      "decision": "skip",
+      "asset_path": null,
+      "reason": "scenario marked deprecated",
+      "description_hash": "92367c2b3e2d"
+    },
+    {
+      "sc_id": "SC-006",
+      "requirement_id": "AC-006",
+      "decision": "replay",
+      "asset_path": "tests\\kane\\general\\sc_006_user_can_filter_the_task_list_by_status_test.md",
+      "reason": "hash matches recorded asset",
+      "description_hash": "8e07ce8ab2f8"
+    },
+    {
+      "sc_id": "SC-007",
+      "requirement_id": "AC-007",
+      "decision": "record",
+      "asset_path": "tests\\kane\\general\\sc_007_user_can_attach_a_colored_label_to_a_task_and_filter_by_labe_test.md",
+      "reason": "no asset on disk yet",
+      "description_hash": "232d50316b1c"
+    }
+  ],
+  "summary": {
+    "replay": 4,
+    "record": 1,
+    "rerecord": 1,
+    "skip": 1
+  }
+}
