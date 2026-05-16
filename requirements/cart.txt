@@ -1,5 +1,0 @@
-Title: LambdaTest Ecommerce Playground — Additional Requirements (reserved)
-
-This file is reserved for additional ecommerce requirements.
-No acceptance criteria defined here.
-# cache-bust: 2026-05-14

@@ -1,0 +1,11 @@
+{
+  "sc_id": "SC-005",
+  "requirement_id": "AC-005",
+  "feature": "general",
+  "description_hash": "92367c2b3e2d",
+  "description": "User can delete a task",
+  "objective": "On https://nosecretformula.vercel.app/ \u2014 User can delete a task",
+  "asset": "sc_005_user_can_delete_a_task_test.md",
+  "recorded_at": "2026-05-16T04:15:06.018023+00:00",
+  "recorded_session_id": "e312da79-895d-4614-89d3-0f6c8713850f"
+}

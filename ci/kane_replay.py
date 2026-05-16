@@ -113,13 +113,12 @@ def replay(
         "--headless",
         "--timeout", str(timeout_seconds),
         "--max-steps", "30",
-        # On replay failure, Kane shrinks the replay window and retries up to
-        # --retry-count times before falling back to fresh authoring.
-        "--retry",
-        "--retry-count", "2",
-        # Be tolerant of concurrent runs writing to the same output dir
-        # (the parallel ThreadPoolExecutor in dispatch_all triggers this).
-        "--on-lock-conflict", "wait",
+        # Note: --retry and --on-lock-conflict were removed because Kane 0.3.1
+        # on Windows rejects them with "--retry requires basic auth credentials
+        # for the lock API" even when --username/--access-key are passed
+        # inline. Pipeline-level retry happens via re-record on hash drift, and
+        # each worker writes to its own per-sc output dir so lock collisions
+        # don't occur in practice.
     ]
     if variables_file is not None and variables_file.exists():
         command.extend(["--variables-file", str(variables_file)])

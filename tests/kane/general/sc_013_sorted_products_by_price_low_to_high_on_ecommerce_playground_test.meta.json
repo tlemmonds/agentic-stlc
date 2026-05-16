@@ -1,9 +1,0 @@
-{
-  "sc_id": "SC-013",
-  "requirement_id": "AC-013",
-  "feature": "general",
-  "description_hash": "904f8c5bd501",
-  "description": "User can sort products by price low to high and see the listing order change",
-  "objective": "User can sort products by price low to high and see the listing order change",
-  "asset": "sc_013_sorted_products_by_price_low_to_high_on_ecommerce_playground_test.md"
-}

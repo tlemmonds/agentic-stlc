@@ -43,13 +43,19 @@ def _scenario_for(requirement_id: str, scenarios: list[dict]) -> dict | None:
 
 def _objective_for(requirement_id: str, scenarios: list[dict], description: str) -> str:
     """Reuse the canonical objective baked into scenarios.json
-    (kane_objective) if present; fall back to the AC description verbatim.
+    (kane_objective) if present; fall back to the AC description prefixed
+    with TARGET_URL so Kane lands on the right site.
 
-    Once the migration completes, _OBJECTIVE_OVERRIDES + _KANE_TASK_OVERRIDES
-    can be deleted; the canonical objective lives on the scenario record."""
+    The URL prefix is critical: without it, Kane defaults to its own demo
+    site (kaneai-playground.lambdatest.io) instead of the AUT. We only
+    inject TARGET_URL when the objective doesn't already mention it, to
+    avoid double-prefixing custom objectives."""
     sc = _scenario_for(requirement_id, scenarios)
     if sc and sc.get("kane_objective"):
         return sc["kane_objective"]
+    target_url = os.environ.get("TARGET_URL", "").strip()
+    if target_url and target_url.rstrip("/") not in description:
+        return f"On {target_url} — {description}"
     return description
 
 
@@ -117,6 +123,11 @@ def dispatch_one(
     export_dir = _export_subdir_for(sc_id)
     bn = build_name()
 
+    # First-record on a new AUT (Vercel cold start, large React bundle, etc.)
+    # often needs more headroom than replays of an already-mapped flow.
+    record_timeout = int(os.environ.get("KANE_RECORD_TIMEOUT", "300"))
+    replay_timeout = int(os.environ.get("KANE_REPLAY_TIMEOUT", "180"))
+
     if decision.decision == "replay":
         result = kane_replay.replay(
             decision.asset_path,
@@ -124,6 +135,7 @@ def dispatch_one(
             build_name=bn,
             username=username,
             access_key=access_key,
+            timeout_seconds=replay_timeout,
             code_export_dir=export_dir,
         )
     else:
@@ -140,6 +152,7 @@ def dispatch_one(
             build_name=bn,
             username=username,
             access_key=access_key,
+            timeout_seconds=record_timeout,
             code_export_dir=export_dir,
         )
 

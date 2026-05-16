@@ -1,9 +1,0 @@
-{
-  "sc_id": "SC-006",
-  "requirement_id": "AC-006",
-  "feature": "general",
-  "description_hash": "632e57b2f123",
-  "description": "User can browse the homepage and product listings without logging in as a guest",
-  "objective": "User can browse the homepage and product listings without logging in as a guest",
-  "asset": "sc_006_browsed_the_homepage_and_product_listings_on_ecommerce_playg_test.md"
-}

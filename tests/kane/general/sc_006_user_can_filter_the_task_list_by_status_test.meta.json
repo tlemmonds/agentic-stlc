@@ -1,0 +1,10 @@
+{
+  "sc_id": "SC-006",
+  "requirement_id": "AC-006",
+  "feature": "general",
+  "description_hash": "8e07ce8ab2f8",
+  "description": "User can filter the task list by status (active / done / all)",
+  "objective": "On https://nosecretformula.vercel.app/ \u2014 User can filter the task list by status (active / done / all)",
+  "asset": "sc_006_user_can_filter_the_task_list_by_status_test.md",
+  "recorded_at": "2026-05-16T04:18:35.911949+00:00"
+}

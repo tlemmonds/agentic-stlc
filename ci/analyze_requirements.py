@@ -74,7 +74,7 @@ def _kane_exe():
 
 KANE_EXE = _kane_exe()
 
-TARGET_URL = os.environ.get("TARGET_URL", "https://ecommerce-playground.lambdatest.io/")
+TARGET_URL = os.environ.get("TARGET_URL", "https://nosecretformula.vercel.app/")
 
 
 def _configure_kane_project():
@@ -138,68 +138,12 @@ def make_title(description):
     return " ".join(words[:10]).strip().capitalize()
 
 
-# Optimized Kane task overrides: precise, flow-aware, termination-explicit objectives
-# Keys are canonical substrings from the acceptance criterion descriptions.
-# Values are task strings passed directly to `kane-cli run`.
-_KANE_TASK_OVERRIDES: dict[str, str] = {
-    "add a product to the cart from the product detail page": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47"
-        " — click the Add to Cart button — verify the cart icon in the top navigation shows at least 1 item."
-        " Stop immediately once the cart count is updated. Do not navigate further."
-    ),
-    "open the cart dropdown and see the list of added items": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47"
-        " — click Add to Cart — then click the cart icon in the top-right header to open the cart dropdown"
-        " — verify at least one item name and price appears in the dropdown."
-        " Stop once the item is visible in the cart dropdown."
-    ),
-    "log in with a registered email address and password and land on the account dashboard": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=account/login"
-        " — enter valid credentials in the Email Address and Password fields — click the Login button"
-        " — verify you reach the My Account page (URL contains route=account/account)."
-        " Stop immediately once the account dashboard heading is visible. Do not explore further."
-    ),
-    "log out from the account and be redirected to the home page": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=account/login"
-        " — log in with valid credentials — once on the account dashboard, click the My Account"
-        " dropdown in the top navigation and click Logout"
-        " — verify the page redirects to the home page."
-        " Stop once the home page is confirmed."
-    ),
-    "remove an item from the shopping cart and see the cart update with the item gone": (
-        "This task has FOUR steps and is NOT done until step 4 succeeds. Do not stop early.\n"
-        "Step 1: Open https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47 and click the Add to Cart button.\n"
-        "Step 2: Open https://ecommerce-playground.lambdatest.io/index.php?route=checkout/cart in the same browser tab.\n"
-        "Step 3: On the shopping cart page, find the row for HP LP3065 and click its red Remove button (icon: fa-times, class btn-danger).\n"
-        "Step 4: Wait for the page to refresh and confirm the cart now displays the message 'Your shopping cart is empty!'.\n"
-        "ONLY stop after the empty-cart message in step 4 is visible. If step 4 has not been confirmed, keep going."
-    ),
-    "update the quantity of an item in the shopping cart and see the line total recalculate": (
-        "This task has FOUR steps and is NOT done until step 4 succeeds. Do not stop early.\n"
-        "Step 1: Open https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47 and click the Add to Cart button.\n"
-        "Step 2: Open https://ecommerce-playground.lambdatest.io/index.php?route=checkout/cart in the same browser tab.\n"
-        "Step 3: On the shopping cart page, locate the quantity input for HP LP3065. Note the current line-total value, then change the quantity to 2 and click the Update (refresh) button next to the quantity field.\n"
-        "Step 4: Wait for the page to refresh and confirm the line total has changed to a value DIFFERENT from the value you noted in step 3 (it should now reflect 2 × unit price).\n"
-        "ONLY stop after the recalculated line total in step 4 is visible. If step 4 has not been confirmed, keep going."
-    ),
-    "add a product to the wish list from the product detail page and view it in the wishlist": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=account/login"
-        " — log in with valid credentials — then navigate to"
-        " https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=40"
-        " — click the Add to Wish List heart icon — verify a success message or wishlist page appears."
-        " Stop once wishlist confirmation is visible."
-    ),
-    "complete a guest checkout by entering a shipping address and selecting flat rate shipping": (
-        "Go to https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=47"
-        " — click Add to Cart — navigate to"
-        " https://ecommerce-playground.lambdatest.io/index.php?route=checkout/checkout"
-        " — select the Guest Checkout option — fill in the billing address: First Name Test, Last Name User,"
-        " Email guest@test.com, Address 123 Main St, City Austin, Postcode 78701,"
-        " Country United States, State Texas"
-        " — select Flat Rate shipping — verify you can proceed to the payment confirmation step."
-        " Stop once shipping method is confirmed."
-    ),
-}
+# Optional per-AC objective overrides. Empty for the TaskFlow AUT — every AC
+# falls through to its description verbatim. Add entries here ONLY when an AC's
+# raw description doesn't give Kane enough flow guidance to plan a stable
+# recording. The replay-first model means an override only fires on the first
+# record; subsequent runs replay the saved _test.md regardless.
+_KANE_TASK_OVERRIDES: dict[str, str] = {}
 
 
 def _get_kane_task(description: str) -> str:

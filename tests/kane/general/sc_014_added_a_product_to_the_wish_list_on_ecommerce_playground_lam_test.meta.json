@@ -1,9 +1,0 @@
-{
-  "sc_id": "SC-014",
-  "requirement_id": "AC-014",
-  "feature": "general",
-  "description_hash": "3736c7ac551e",
-  "description": "User can add a product to the wish list from the product detail page and view it in the wishlist",
-  "objective": "User can add a product to the wish list from the product detail page and view it in the wishlist",
-  "asset": "sc_014_added_a_product_to_the_wish_list_on_ecommerce_playground_lam_test.md"
-}

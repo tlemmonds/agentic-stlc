@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -7,34 +8,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
 
-# Optimised Kane objectives: map canonical description substrings → concise, termination-aware objective.
-# Kept in sync with _KANE_TASK_OVERRIDES in analyze_requirements.py.
-_OBJECTIVE_OVERRIDES: dict[str, str] = {
-    "add a product to the cart from the product detail page": (
-        "Navigate to product_id=47 — click Add to Cart — verify cart icon count updates. Stop once confirmed."
-    ),
-    "open the cart dropdown and see the list of added items": (
-        "Navigate to product_id=47 — add to cart — open cart dropdown — verify item name and price. Stop once confirmed."
-    ),
-    "log in with a registered email address and password and land on the account dashboard": (
-        "Navigate to /account/login — enter credentials — click Login — verify dashboard URL. Stop immediately once confirmed."
-    ),
-    "log out from the account and be redirected to the home page": (
-        "Log in — click My Account dropdown — click Logout — verify home page redirect. Stop once confirmed."
-    ),
-    "remove an item from the shopping cart and see the cart update with the item gone": (
-        "Navigate to product_id=47 — add to cart — navigate to checkout/cart — click Remove — verify cart empty. Stop once confirmed."
-    ),
-    "update the quantity of an item in the shopping cart and see the line total recalculate": (
-        "Navigate to product_id=47 — add to cart — navigate to checkout/cart — change qty to 2 — update — verify total recalculates. Stop once confirmed."
-    ),
-    "add a product to the wish list from the product detail page and view it in the wishlist": (
-        "Log in — navigate to product_id=40 — click Add to Wish List — verify confirmation. Stop once wishlist confirmed."
-    ),
-    "complete a guest checkout by entering a shipping address and selecting flat rate shipping": (
-        "Navigate to product_id=47 — add to cart — navigate to checkout — select Guest Checkout — fill address — select Flat Rate — verify proceed. Stop once shipping confirmed."
-    ),
-}
+# Optional per-AC objective overrides. Empty for the TaskFlow AUT — every AC
+# falls through to its description verbatim. Kept in sync with
+# _KANE_TASK_OVERRIDES in analyze_requirements.py.
+_OBJECTIVE_OVERRIDES: dict[str, str] = {}
 
 
 def _get_kane_objective(description: str) -> str:
@@ -88,33 +65,12 @@ def _fallback_title(description):
 
 
 def _fallback_steps(description):
-    lowered = description.lower()
-    if "filter" in lowered or "refine" in lowered:
-        return [
-            "Navigate to https://ecommerce-playground.lambdatest.io/",
-            "Go to a category page",
-            "Select a brand filter from the sidebar",
-            "Verify the product list updates",
-        ]
-    if "click" in lowered and ("detail" in lowered or "price" in lowered):
-        return [
-            "Navigate to https://ecommerce-playground.lambdatest.io/",
-            "Click on any product tile",
-            "Verify the product detail page loads with name and price",
-        ]
-    if "search" in lowered:
-        return [
-            "Navigate to https://ecommerce-playground.lambdatest.io/",
-            "Enter a search term in the search bar",
-            "Verify relevant results are displayed",
-        ]
-    if "without logging in" in lowered or "highlight" in lowered:
-        return [
-            "Navigate to https://ecommerce-playground.lambdatest.io/ without logging in",
-            "Verify featured products or carousel is visible",
-        ]
+    """Generic 3-step fallback when Kane didn't emit step summaries.
+    Used by ChatReporter and traceability matrix renderers — the actual
+    test execution comes from Kane's _test.md asset, not from this list."""
+    target = os.environ.get("TARGET_URL", "https://nosecretformula.vercel.app/")
     return [
-        "Navigate to https://ecommerce-playground.lambdatest.io/",
+        f"Navigate to {target}",
         "Perform the action described in the acceptance criterion",
         "Verify the expected outcome is achieved",
     ]
