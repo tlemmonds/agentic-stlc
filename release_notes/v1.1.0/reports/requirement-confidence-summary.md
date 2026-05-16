@@ -1,12 +1,10 @@
 # Scenario Confidence Report
 
 **Total requirements:** 7  
-**HIGH confidence:** 4  
+**HIGH confidence:** 6  
 **MEDIUM confidence:** 0  
-**LOW confidence:** 3
+**LOW confidence:** 1
 
 ## Low Confidence Scenarios
 
-- **SC-002** (AC-002): Missing negative/error scenario coverage; Kane AI functional verification failed
-- **SC-006** (AC-006): Missing negative/error scenario coverage; Kane AI functional verification failed
-- **SC-007** (AC-007): Missing negative/error scenario coverage; Kane AI functional verification failed
+- **SC-005** (AC-005): Missing negative/error scenario coverage; Kane AI functional verification failed

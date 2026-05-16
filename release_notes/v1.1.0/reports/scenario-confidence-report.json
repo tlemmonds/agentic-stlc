@@ -2,22 +2,22 @@
   "summary": {
     "total_requirements": 7,
     "by_confidence_level": {
-      "HIGH": 4,
+      "HIGH": 6,
       "MEDIUM": 0,
-      "LOW": 3
+      "LOW": 1
     },
-    "high_confidence_count": 4,
-    "critical_gap_count": 3,
+    "high_confidence_count": 6,
+    "critical_gap_count": 1,
     "missing_negative_coverage": 7,
     "missing_edge_case_coverage": 7,
-    "kane_failed_requirements": 3,
+    "kane_failed_requirements": 1,
     "no_mobile_coverage": 7,
     "quality_signals": {
       "confidence_gate_passed": false,
       "high_criticality_low_confidence": [],
       "missing_negative_coverage_count": 7
     },
-    "analyzed_at": "2026-05-16T06:44:30.494188+00:00"
+    "analyzed_at": "2026-05-16T16:18:43.923601+00:00"
   },
   "records": [
     {
@@ -56,8 +56,8 @@
       "acceptance_criterion": "User can list all tasks ordered by due date, with overdue tasks pinned to the top",
       "feature": "GENERAL",
       "criticality": "LOW",
-      "kane_status": "failed",
-      "confidence_level": "LOW",
+      "kane_status": "passed",
+      "confidence_level": "HIGH",
       "coverage_dimensions": {
         "happy_path": true,
         "negative": false,
@@ -66,17 +66,16 @@
         "real_body": false
       },
       "coverage_gaps": [
-        "Missing negative/error scenario coverage",
-        "Kane AI functional verification failed"
+        "Missing negative/error scenario coverage"
       ],
       "recommendations": [
         "Add scenario: 'User can list all tasks ordered by due date, with overdue ta' with invalid/error conditions",
         "Consider adding mobile viewport test"
       ],
-      "confidence_reason": "Missing negative/error scenario coverage; Kane AI functional verification failed",
+      "confidence_reason": "Missing negative/error scenario coverage",
       "risk_assessment": {
         "criticality": "LOW",
-        "risk_level": "MEDIUM"
+        "risk_level": "LOW"
       }
     },
     {
@@ -144,7 +143,37 @@
       "acceptance_criterion": "User can delete a task",
       "feature": "GENERAL",
       "criticality": "LOW",
-      "kane_status": "skipped",
+      "kane_status": "failed",
+      "confidence_level": "LOW",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage",
+        "Kane AI functional verification failed"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can delete a task' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage; Kane AI functional verification failed",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "MEDIUM"
+      }
+    },
+    {
+      "requirement_id": "AC-006",
+      "scenario_id": "SC-006",
+      "scenario_status": "active",
+      "acceptance_criterion": "User can filter the task list by status (active / done / all)",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "passed",
       "confidence_level": "HIGH",
       "coverage_dimensions": {
         "happy_path": true,
@@ -157,7 +186,7 @@
         "Missing negative/error scenario coverage"
       ],
       "recommendations": [
-        "Add scenario: 'User can delete a task' with invalid/error conditions",
+        "Add scenario: 'User can filter the task list by status (active / done / all' with invalid/error conditions",
         "Consider adding mobile viewport test"
       ],
       "confidence_reason": "Missing negative/error scenario coverage",
@@ -167,44 +196,14 @@
       }
     },
     {
-      "requirement_id": "AC-006",
-      "scenario_id": "SC-006",
-      "scenario_status": "active",
-      "acceptance_criterion": "User can filter the task list by status (active / done / all)",
-      "feature": "GENERAL",
-      "criticality": "LOW",
-      "kane_status": "failed",
-      "confidence_level": "LOW",
-      "coverage_dimensions": {
-        "happy_path": true,
-        "negative": false,
-        "edge_case": false,
-        "mobile": false,
-        "real_body": false
-      },
-      "coverage_gaps": [
-        "Missing negative/error scenario coverage",
-        "Kane AI functional verification failed"
-      ],
-      "recommendations": [
-        "Add scenario: 'User can filter the task list by status (active / done / all' with invalid/error conditions",
-        "Consider adding mobile viewport test"
-      ],
-      "confidence_reason": "Missing negative/error scenario coverage; Kane AI functional verification failed",
-      "risk_assessment": {
-        "criticality": "LOW",
-        "risk_level": "MEDIUM"
-      }
-    },
-    {
       "requirement_id": "AC-007",
       "scenario_id": "SC-007",
-      "scenario_status": "updated",
+      "scenario_status": "active",
       "acceptance_criterion": "User can attach a colored label to a task and filter by label",
       "feature": "GENERAL",
       "criticality": "LOW",
-      "kane_status": "failed",
-      "confidence_level": "LOW",
+      "kane_status": "passed",
+      "confidence_level": "HIGH",
       "coverage_dimensions": {
         "happy_path": true,
         "negative": false,
@@ -213,17 +212,16 @@
         "real_body": false
       },
       "coverage_gaps": [
-        "Missing negative/error scenario coverage",
-        "Kane AI functional verification failed"
+        "Missing negative/error scenario coverage"
       ],
       "recommendations": [
         "Add scenario: 'User can attach a colored label to a task and filter by labe' with invalid/error conditions",
         "Consider adding mobile viewport test"
       ],
-      "confidence_reason": "Missing negative/error scenario coverage; Kane AI functional verification failed",
+      "confidence_reason": "Missing negative/error scenario coverage",
       "risk_assessment": {
         "criticality": "LOW",
-        "risk_level": "MEDIUM"
+        "risk_level": "LOW"
       }
     }
   ]

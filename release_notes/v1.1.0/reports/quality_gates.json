@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-05-16T06:44:31.117140+00:00",
-  "gates_passed": false,
-  "critical_failures": 1,
+  "generated_at": "2026-05-16T16:18:44.600052+00:00",
+  "gates_passed": true,
+  "critical_failures": 0,
   "warnings": 0,
   "config": {
     "min_coverage_pct": 50.0,
@@ -24,11 +24,11 @@
     {
       "gate": "Minimum test pass rate",
       "severity": "CRITICAL",
-      "passed": false,
-      "actual": 50.0,
+      "passed": true,
+      "actual": 83.3,
       "threshold": 75.0,
       "unit": "%",
-      "detail": "3 passed of 6 executed"
+      "detail": "5 passed of 6 executed"
     },
     {
       "gate": "Flaky test threshold",

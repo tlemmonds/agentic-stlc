@@ -1,14 +1,12 @@
 {
   "verdict": "RED",
-  "pass_rate": 50.0,
+  "pass_rate": 83.3,
   "requirements_covered": 7,
   "requirements_total": 7,
   "executed": 6,
-  "passed": 3,
+  "passed": 5,
   "failing_scenarios": [
-    "SC-002",
-    "SC-005",
-    "SC-006"
+    "SC-005"
   ],
   "untested_requirements": [
     "AC-007"

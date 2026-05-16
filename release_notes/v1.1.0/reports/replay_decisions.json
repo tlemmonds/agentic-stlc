@@ -12,9 +12,9 @@
     {
       "sc_id": "SC-002",
       "requirement_id": "AC-002",
-      "decision": "rerecord",
-      "asset_path": "tests\\kane\\general\\sc_002_user_can_list_all_tasks_ordered_by_due_d_test.md",
-      "reason": "description hash drifted (3f99f833387e \u2192 0e3ec6797528)",
+      "decision": "record",
+      "asset_path": "tests\\kane\\general\\sc_002_user_can_list_all_tasks_ordered_by_due_date_with_overdue_pin_test.md",
+      "reason": "no asset on disk yet",
       "description_hash": "0e3ec6797528"
     },
     {
@@ -36,9 +36,9 @@
     {
       "sc_id": "SC-005",
       "requirement_id": "AC-005",
-      "decision": "skip",
-      "asset_path": null,
-      "reason": "scenario marked deprecated",
+      "decision": "replay",
+      "asset_path": "tests\\kane\\general\\sc_005_user_can_delete_a_task_test.md",
+      "reason": "hash matches recorded asset",
       "description_hash": "92367c2b3e2d"
     },
     {
@@ -52,16 +52,16 @@
     {
       "sc_id": "SC-007",
       "requirement_id": "AC-007",
-      "decision": "record",
-      "asset_path": "tests\\kane\\general\\sc_007_user_can_attach_a_colored_label_to_a_task_and_filter_by_labe_test.md",
-      "reason": "no asset on disk yet",
+      "decision": "replay",
+      "asset_path": "tests\\kane\\general\\sc_007_filled_in_login_details_on_kaneai_playground_lambdatest_io_test.md",
+      "reason": "hash matches recorded asset",
       "description_hash": "232d50316b1c"
     }
   ],
   "summary": {
-    "replay": 4,
+    "replay": 6,
     "record": 1,
-    "rerecord": 1,
-    "skip": 1
+    "rerecord": 0,
+    "skip": 0
   }
 }

@@ -1,6 +1,6 @@
 # Requirement Coverage Analysis Report
 
-_Generated: 2026-05-16 06:44 UTC_
+_Generated: 2026-05-16 16:18 UTC_
 
 ## Coverage Summary
 
@@ -30,11 +30,11 @@ _Generated: 2026-05-16 06:44 UTC_
 | Requirement | Coverage | Tests | Pass | Fail | Missing | Risk |
 |-------------|----------|-------|------|------|---------|------|
 | `AC-001` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-002` | FULL | 2 | 2 | 0 | 0 | MEDIUM |
+| `AC-002` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-003` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-004` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-005` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-006` | FULL | 2 | 2 | 0 | 1 | MEDIUM |
+| `AC-005` | FULL | 2 | 2 | 0 | 0 | MEDIUM |
+| `AC-006` | FULL | 2 | 2 | 0 | 1 | LOW |
 | `AC-007` | PARTIAL | 0 | 0 | 0 | 1 | MEDIUM |
 
 ## Per-Requirement Detail
@@ -61,7 +61,7 @@ _Generated: 2026-05-16 06:44 UTC_
 
 > User can list all tasks ordered by due date, with overdue tasks pinned to the top
 
-- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** MEDIUM  |  **Kane:** failed
+- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 100.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no
@@ -115,7 +115,7 @@ _Generated: 2026-05-16 06:44 UTC_
 
 > User can delete a task
 
-- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** skipped
+- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** MEDIUM  |  **Kane:** failed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 100.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no
@@ -133,7 +133,7 @@ _Generated: 2026-05-16 06:44 UTC_
 
 > User can filter the task list by status (active / done / all)
 
-- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** LOW  |  **Kane:** failed
+- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** LOW  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 0.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no
@@ -154,7 +154,7 @@ _Generated: 2026-05-16 06:44 UTC_
 
 > User can attach a colored label to a task and filter by label
 
-- **Coverage Status:** PARTIAL  |  **Risk:** MEDIUM  |  **Criticality:** LOW  |  **Kane:** failed
+- **Coverage Status:** PARTIAL  |  **Risk:** MEDIUM  |  **Criticality:** LOW  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 0.0%
 - **Browsers Tested:** none
 - **Flaky:** no

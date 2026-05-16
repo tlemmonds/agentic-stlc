@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-16T06:44:30.733229+00:00",
+  "generated_at": "2026-05-16T16:18:44.175737+00:00",
   "summary": {
     "total_requirements": 7,
     "covered_full": 6,
@@ -13,7 +13,7 @@
     "android_coverage_pct": 0.0,
     "flaky_count": 0,
     "high_risk_count": 0,
-    "medium_risk_count": 3,
+    "medium_risk_count": 2,
     "missing_scenario_types": 2
   },
   "requirements": [
@@ -63,7 +63,7 @@
       "description": "User can list all tasks ordered by due date, with overdue tasks pinned to the top",
       "feature": "GENERAL",
       "criticality": "MEDIUM",
-      "kane_status": "failed",
+      "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
         "SC-002"
@@ -95,7 +95,7 @@
       ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 100.0,
-      "risk_level": "MEDIUM",
+      "risk_level": "LOW",
       "flaky": false,
       "retry_count": 0
     },
@@ -186,7 +186,7 @@
       "description": "User can delete a task",
       "feature": "GENERAL",
       "criticality": "MEDIUM",
-      "kane_status": "skipped",
+      "kane_status": "failed",
       "coverage_status": "FULL",
       "covered_scenarios": [
         "SC-005"
@@ -218,7 +218,7 @@
       ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 100.0,
-      "risk_level": "LOW",
+      "risk_level": "MEDIUM",
       "flaky": false,
       "retry_count": 0
     },
@@ -227,7 +227,7 @@
       "description": "User can filter the task list by status (active / done / all)",
       "feature": "FILTER",
       "criticality": "LOW",
-      "kane_status": "failed",
+      "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
         "SC-006"
@@ -264,7 +264,7 @@
       ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 0.0,
-      "risk_level": "MEDIUM",
+      "risk_level": "LOW",
       "flaky": false,
       "retry_count": 0
     },
@@ -273,7 +273,7 @@
       "description": "User can attach a colored label to a task and filter by label",
       "feature": "FILTER",
       "criticality": "LOW",
-      "kane_status": "failed",
+      "kane_status": "passed",
       "coverage_status": "PARTIAL",
       "covered_scenarios": [
         "SC-007"

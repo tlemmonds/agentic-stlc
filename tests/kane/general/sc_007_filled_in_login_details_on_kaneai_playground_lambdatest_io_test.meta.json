@@ -1,0 +1,10 @@
+{
+  "sc_id": "SC-007",
+  "requirement_id": "AC-007",
+  "feature": "general",
+  "description_hash": "232d50316b1c",
+  "description": "User can attach a colored label to a task and filter by label",
+  "objective": "On https://nosecretformula.vercel.app/ \u2014 User can attach a colored label to a task and filter by label",
+  "asset": "sc_007_filled_in_login_details_on_kaneai_playground_lambdatest_io_test.md",
+  "recorded_at": "2026-05-16T07:07:00.334308+00:00"
+}

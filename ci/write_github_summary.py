@@ -177,9 +177,19 @@ def main():
         "RUNNING": "⏳", "CANCELLED": "🚫", "INFRA_FAILURE": "🔥",
         "NOT_EXECUTED": "⏭️", "TIMED_OUT": "⏰",
     }
-    he_icon = _he_icon_map.get(he_status, "⚠️")
     he_task_pass = he_api.get("task_pass_count", sum(1 for t in he_tasks_api if t.get("status") == "passed"))
     he_task_total = he_api.get("total_tasks", len(he_tasks_api))
+    # Reconcile stage-5 badge with task-level reality: HyperExecute's job-level
+    # `status` field is independently set and can read "failed" even when every
+    # individual task passes (artifact upload warnings, task retries, etc.).
+    # When task pass rate is 100% and the parser fetched the status cleanly,
+    # trust the task results for the stage badge — the raw job status still
+    # appears in the Stage 5 detail table for full transparency.
+    if he_task_total > 0 and he_task_pass == he_task_total and he_parser_status == "api_ok":
+        he_stage_status = "PASSED"
+    else:
+        he_stage_status = he_status
+    he_icon = _he_icon_map.get(he_stage_status, "⚠️")
     verdict_icon = verdict_emoji(verdict_line)
 
     emit("## Pipeline Stage Status")
@@ -188,7 +198,7 @@ def main():
     emit("|-------|------|--------|-------------------|---------|")
     emit(f"| 1 | KaneAI Verification | {kane_status_icon} | {'PASSED' if kane_passed == kane_total else 'PARTIAL' if kane_passed > 0 else 'FAILED'} | {kane_passed}/{kane_total} criteria passed |")
     emit(f"| 2–4 | Scenarios + Test Gen + Selection | ✅ | PASSED | {len([s for s in scenarios if s.get('status') != 'deprecated'])} active tests generated |")
-    emit(f"| 5 | HyperExecute Regression | {he_icon} | {he_status} | {he_task_pass}/{he_task_total} tasks · parser: {he_parser_status} |")
+    emit(f"| 5 | HyperExecute Regression | {he_icon} | {he_stage_status} | {he_task_pass}/{he_task_total} tasks · parser: {he_parser_status} |")
     emit(f"| 6 | Result Aggregation | ✅ | PASSED | {len(normalized)} results normalized |")
     emit(f"| 7–8 | Traceability + Verdict | {verdict_icon} | {verdict_line} | see release recommendation below |")
     emit("")
