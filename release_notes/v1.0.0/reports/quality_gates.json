@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-05-16T04:44:49.357355+00:00",
+  "gates_passed": true,
+  "critical_failures": 0,
+  "warnings": 0,
+  "config": {
+    "min_coverage_pct": 50.0,
+    "min_pass_rate": 75.0,
+    "max_flaky": 5,
+    "require_critical_coverage": true,
+    "max_high_risk_uncovered": 999,
+    "min_he_pct": 0.0
+  },
+  "gates": [
+    {
+      "gate": "Minimum requirement coverage",
+      "severity": "WARNING",
+      "passed": true,
+      "actual": 100.0,
+      "threshold": 50.0,
+      "unit": "%",
+      "detail": "6 of 6 requirements fully covered"
+    },
+    {
+      "gate": "Minimum test pass rate",
+      "severity": "CRITICAL",
+      "passed": true,
+      "actual": 100.0,
+      "threshold": 75.0,
+      "unit": "%",
+      "detail": "6 passed of 6 executed"
+    },
+    {
+      "gate": "Flaky test threshold",
+      "severity": "WARNING",
+      "passed": true,
+      "actual": 0,
+      "threshold": 5,
+      "unit": "flaky requirements",
+      "detail": "No flaky requirements detected"
+    },
+    {
+      "gate": "Critical requirements covered",
+      "severity": "WARNING",
+      "passed": true,
+      "actual": 0,
+      "threshold": 0,
+      "unit": "uncovered HIGH-criticality requirements",
+      "detail": "All HIGH-criticality requirements have coverage"
+    },
+    {
+      "gate": "No failing high-risk requirements",
+      "severity": "CRITICAL",
+      "passed": true,
+      "actual": 0,
+      "threshold": 0,
+      "unit": "failing high-risk requirements",
+      "detail": "No high-risk requirements are failing"
+    }
+  ]
+}

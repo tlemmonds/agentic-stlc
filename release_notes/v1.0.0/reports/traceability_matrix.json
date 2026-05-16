@@ -1,0 +1,262 @@
+{
+  "summary": {
+    "run_type": "full",
+    "requirements_covered": 6,
+    "requirements_total": 6,
+    "executed": 6,
+    "passed": 6,
+    "pass_rate": 100.0,
+    "browsers_tested": [
+      "chrome",
+      "firefox"
+    ],
+    "untested_requirements": [],
+    "failing_scenarios": []
+  },
+  "rows": [
+    {
+      "requirement_id": "AC-001",
+      "acceptance_criterion": "User can create a task with a title and a due date",
+      "scenario_id": "SC-001",
+      "test_case_id": "TC-001",
+      "function_name": "test_sc_001_user_can_create_a_task_with_a_title_and",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true
+      },
+      "kane_ai_result": "passed",
+      "kane_session_link": "",
+      "kane_one_liner": "created a new task on nosecretformula.vercel.app",
+      "kane_summary": "Opened nosecretformula.vercel.app and went to the task list.\nEntered a task title and selected a due date, then submitted the new task.\nConfirmed the task was added and a due date appears in the tasks table (e.g., 2026-05-20).",
+      "kane_steps": [
+        "navigate: navigate to https://nosecretformula.vercel.app/",
+        "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
+        "type: Filled '2026-05-20' via DOM locator: role=textbox[name='Due date']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "analyze: ANALYZE(visual, 'Is there a task listed in the table with a due date shown?', ke",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can create a task with a title and"
+      ],
+      "playwright_status": "passed",
+      "playwright_per_browser": {
+        "chrome": "passed",
+        "firefox": "passed"
+      },
+      "session_link": "https://automation.lambdatest.com/test?testID=CRNXP-QNLDD-EUYOU-E9LOJ",
+      "overall": "passed"
+    },
+    {
+      "requirement_id": "AC-002",
+      "acceptance_criterion": "User can list all tasks ordered by due date",
+      "scenario_id": "SC-002",
+      "test_case_id": "TC-002",
+      "function_name": "test_sc_002_user_can_list_all_tasks_ordered_by_due_d",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true
+      },
+      "kane_ai_result": "passed",
+      "kane_session_link": "",
+      "kane_one_liner": "sorted tasks by due date on nosecretformula.vercel.app",
+      "kane_summary": "Opened https://nosecretformula.vercel.app/ and navigated to the Tasks page.\nOpened the tasks list view and enabled sorting by due date.\nConfirmed the task list table is visible with the columns Done, Title, Due, Status, and Actions at https://nosecretformula.vercel.app/tasks.",
+      "kane_steps": [
+        "navigate: Navigate to the objective website https://nosecretformula.vercel.app/",
+        "type: Filled 'Task due 2026-05-20' via DOM locator: role=textbox[name='Title']",
+        "type: Filled '2026-05-20' via DOM locator: role=textbox[name='Due date']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "type: Filled 'Task due 2026-05-18' via DOM locator: role=textbox[name='Title']",
+        "type: Filled '2026-05-18' via DOM locator: role=textbox[name='Due date']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "analyze: ANALYZE(visual, 'Is the task list table visible with the columns \"Done\", \"Title\"",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can list all tasks ordered by due "
+      ],
+      "playwright_status": "passed",
+      "playwright_per_browser": {
+        "chrome": "passed",
+        "firefox": "passed"
+      },
+      "session_link": "https://automation.lambdatest.com/test?testID=6APBU-P8IFU-DGJFW-F5KBY",
+      "overall": "passed"
+    },
+    {
+      "requirement_id": "AC-003",
+      "acceptance_criterion": "User can mark a task as complete",
+      "scenario_id": "SC-003",
+      "test_case_id": "TC-003",
+      "function_name": "test_sc_003_user_can_mark_a_task_as_complete",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true
+      },
+      "kane_ai_result": "passed",
+      "kane_session_link": "",
+      "kane_one_liner": "marked a task as complete on nosecretformula.vercel.app",
+      "kane_summary": "Opened nosecretformula.vercel.app and went to the Tasks page.\nMarked an existing task as complete, and the task list shows a task with status \"done\".",
+      "kane_steps": [
+        "navigate: Navigate to https://nosecretformula.vercel.app/",
+        "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "click: Clicked via DOM locator: role=button[name='\u2610']",
+        "analyze: ANALYZE(visual, 'Is there a task row showing its status as \"done\"?', key='__cp_f",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can mark a task as complete"
+      ],
+      "playwright_status": "passed",
+      "playwright_per_browser": {
+        "chrome": "passed",
+        "firefox": "passed"
+      },
+      "session_link": "https://automation.lambdatest.com/test?testID=6FD1E-UIOHC-CJBQR-DJDF1",
+      "overall": "passed"
+    },
+    {
+      "requirement_id": "AC-004",
+      "acceptance_criterion": "User can edit a task's title or due date",
+      "scenario_id": "SC-004",
+      "test_case_id": "TC-004",
+      "function_name": "test_sc_004_user_can_edit_a_task_s_title_or_due_date",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true
+      },
+      "kane_ai_result": "passed",
+      "kane_session_link": "",
+      "kane_one_liner": "opened the edit page for a task on nosecretformula.vercel.app",
+      "kane_summary": "Navigated to nosecretformula.vercel.app to find an existing task and edit it.\nOpened the edit page for task #1.\nConfirmed the \u201cEdit task #1\u201d form was visible with Title and Due date fields, ready for changes.\nEnded on the task edit page (https://nosecretformula.vercel.app/tasks/1/edit).",
+      "kane_steps": [
+        "navigate: navigate to https://nosecretformula.vercel.app/ to access the tasks app",
+        "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "click: Clicked via DOM locator: role=link[name='Edit']",
+        "analyze: ANALYZE(visual, 'Is the \"Edit task\" form visible with Title and Due date input f",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can edit a task's title or due dat"
+      ],
+      "playwright_status": "passed",
+      "playwright_per_browser": {
+        "chrome": "passed",
+        "firefox": "passed"
+      },
+      "session_link": "https://automation.lambdatest.com/test?testID=8V8XL-A5Q9M-GTV8T-URTKE",
+      "overall": "passed"
+    },
+    {
+      "requirement_id": "AC-005",
+      "acceptance_criterion": "User can delete a task",
+      "scenario_id": "SC-005",
+      "test_case_id": "TC-005",
+      "function_name": "test_sc_005_user_can_delete_a_task",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": true,
+        "edge_case": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true
+      },
+      "kane_ai_result": "passed",
+      "kane_session_link": "",
+      "kane_one_liner": "deleted a task on nosecretformula.vercel.app",
+      "kane_summary": "Opened nosecretformula.vercel.app and went to the Tasks page.\nFound an existing task in the task list and used its Delete button to remove it.\nEnded on https://nosecretformula.vercel.app/tasks with the task list still visible and delete controls available.",
+      "kane_steps": [
+        "navigate: Navigate to https://nosecretformula.vercel.app/ to start the task deletion flow.",
+        "type: Filled 'Test delete task' via DOM locator: role=textbox[name='Title']",
+        "click: Clicked via DOM locator: role=button[name='Add task']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=link[name='Edit']",
+        "click: Clicked via DOM locator: role=link[name='Cancel']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "click: Clicked via DOM locator: role=button[name='Delete']",
+        "analyze: ANALYZE(visual, 'Is a task list table visible with a \"Delete\" button in the Acti",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can delete a task"
+      ],
+      "playwright_status": "passed",
+      "playwright_per_browser": {
+        "chrome": "passed",
+        "firefox": "passed"
+      },
+      "session_link": "https://automation.lambdatest.com/test?testID=DADCP-NJSEM-I2EWW-U0IJV",
+      "overall": "passed"
+    },
+    {
+      "requirement_id": "AC-006",
+      "acceptance_criterion": "User can filter the task list by status (active / done / all)",
+      "scenario_id": "SC-006",
+      "test_case_id": "TC-006",
+      "function_name": "test_sc_006_user_can_filter_the_task_list_by_status",
+      "feature": "FILTER",
+      "criticality": "LOW",
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true
+      },
+      "kane_ai_result": "passed",
+      "kane_session_link": "",
+      "kane_one_liner": "switched the task list status filter on nosecretformula.vercel.app",
+      "kane_summary": "Opened https://nosecretformula.vercel.app/.\nUsed the status filter above the task list to switch the view between Active, Done, and All.\nConfirmed the filter control shows the three tabs (Active, Done, All) and the run finished successfully.",
+      "kane_steps": [
+        "navigate: Navigate to https://nosecretformula.vercel.app/",
+        "analyze: ANALYZE(visual, 'Is the task status filter showing tabs labeled \"Active\", \"Done\"",
+        "assert: On https://nosecretformula.vercel.app/ \u2014 User can filter the task list by status"
+      ],
+      "playwright_status": "passed",
+      "playwright_per_browser": {
+        "chrome": "passed",
+        "firefox": "passed"
+      },
+      "session_link": "https://automation.lambdatest.com/test?testID=LXUZ5-YCZPV-H6MYO-ZPNTP",
+      "overall": "passed"
+    }
+  ],
+  "result_analysis": {
+    "overall_health": "healthy",
+    "kane_pass_rate": 100.0,
+    "playwright_pass_rate": 100.0,
+    "risk_level": "low",
+    "key_findings": [
+      "All tested requirements passed both Kane AI verification and Playwright regression."
+    ],
+    "failed_requirements": [],
+    "recommendation_hint": "All requirements passed verification and regression across all browsers; release can proceed with confidence.",
+    "browsers_tested": [
+      "chrome",
+      "firefox"
+    ]
+  }
+}

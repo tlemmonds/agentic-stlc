@@ -1,0 +1,78 @@
+{
+  "from_release": "<initial>",
+  "to_release": "v1.0.0",
+  "from_lock_path": "scenarios\\scenarios.json",
+  "to_lock_path": "release_notes\\v1.0.0.lock.json",
+  "threshold": 0.5,
+  "generated_at": "2026-05-16T04:44:49.186929+00:00",
+  "summary": {
+    "ADD": 6,
+    "EDIT": 0,
+    "DELETE": 0,
+    "UNMATCHED": 0
+  },
+  "operations": [
+    {
+      "op": "ADD",
+      "item_text": "User can create a task with a title and a due date",
+      "item_section": "Added",
+      "issue": null,
+      "sc_id": null,
+      "requirement_id": "AC-007",
+      "match_score": 0.0,
+      "rationale": "new requirement; will allocate AC-007 and let Stage 1 record the asset"
+    },
+    {
+      "op": "ADD",
+      "item_text": "User can list all tasks ordered by due date",
+      "item_section": "Added",
+      "issue": null,
+      "sc_id": null,
+      "requirement_id": "AC-008",
+      "match_score": 0.0,
+      "rationale": "new requirement; will allocate AC-008 and let Stage 1 record the asset"
+    },
+    {
+      "op": "ADD",
+      "item_text": "User can mark a task as complete",
+      "item_section": "Added",
+      "issue": null,
+      "sc_id": null,
+      "requirement_id": "AC-009",
+      "match_score": 0.0,
+      "rationale": "new requirement; will allocate AC-009 and let Stage 1 record the asset"
+    },
+    {
+      "op": "ADD",
+      "item_text": "User can edit a task's title or due date",
+      "item_section": "Added",
+      "issue": null,
+      "sc_id": null,
+      "requirement_id": "AC-010",
+      "match_score": 0.0,
+      "rationale": "new requirement; will allocate AC-010 and let Stage 1 record the asset"
+    },
+    {
+      "op": "ADD",
+      "item_text": "User can delete a task",
+      "item_section": "Added",
+      "issue": null,
+      "sc_id": null,
+      "requirement_id": "AC-011",
+      "match_score": 0.0,
+      "rationale": "new requirement; will allocate AC-011 and let Stage 1 record the asset"
+    },
+    {
+      "op": "ADD",
+      "item_text": "User can filter the task list by status (active / done / all)",
+      "item_section": "Added",
+      "issue": null,
+      "sc_id": null,
+      "requirement_id": "AC-012",
+      "match_score": 0.0,
+      "rationale": "new requirement; will allocate AC-012 and let Stage 1 record the asset"
+    }
+  ],
+  "unmatched_items": [],
+  "applied": false
+}
