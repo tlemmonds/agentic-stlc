@@ -137,26 +137,39 @@ def _build_kane_step_limit_objective(failure: dict, scenario: dict) -> str:
     """
     Append the stop-immediately directive to the existing objective.
     If the directive is already present, return the existing objective unchanged.
+
+    Safety: if stripping prior stop-directive variants leaves an empty string
+    (meaning kane_objective was ALREADY just the directive from a previous
+    patch round), refuse to patch. Returning bare "Stop immediately…" as the
+    full objective destroys the actual test instruction and causes Kane to
+    stop before doing anything useful — observed corrupting SC-002 on
+    2026-05-16. Better to leave the current value alone and surface the
+    repeated failure to a human.
     """
     current_obj = (scenario.get("kane_objective") or "").strip()
     stop_directive = "Stop immediately once confirmed. Do not navigate further."
 
-    # Normalise: strip any existing trailing stop variants
+    # Normalise: strip any existing trailing stop variants. Leading period is
+    # optional so a fully-corrupted objective (= just the directive, no real
+    # task before it) reduces to empty and triggers the safety guard below.
     stop_patterns = [
-        r"\.\s*Stop\s+immediately\s+once\s+confirmed\.?\s*Do\s+not\s+navigate\s+further\.?",
-        r"\.\s*Stop\s+once\s+confirmed\.?",
-        r"\.\s*Stop\s+immediately\s+once\s+\w[\w\s]+confirmed\.?",
+        r"(?:^|\.\s*)Stop\s+immediately\s+once\s+confirmed\.?\s*Do\s+not\s+navigate\s+further\.?",
+        r"(?:^|\.\s*)Stop\s+once\s+confirmed\.?",
+        r"(?:^|\.\s*)Stop\s+immediately\s+once\s+\w[\w\s]+confirmed\.?",
     ]
     cleaned = current_obj
     for pat in stop_patterns:
         cleaned = re.sub(pat, "", cleaned, flags=re.IGNORECASE).rstrip()
 
+    if not cleaned:
+        # Refusing to patch — bare stop directive would corrupt the scenario.
+        return current_obj
+
     # Ensure it ends with a period before appending
-    if cleaned and not cleaned.endswith("."):
+    if not cleaned.endswith("."):
         cleaned += "."
 
-    new_objective = f"{cleaned} {stop_directive}".strip() if cleaned else stop_directive
-    return new_objective
+    return f"{cleaned} {stop_directive}".strip()
 
 
 def _build_auth_objective(failure: dict, scenario: dict) -> str:

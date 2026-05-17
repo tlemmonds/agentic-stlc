@@ -27,6 +27,53 @@ import kane_replay
 CODE_EXPORT_CACHE = REPO_ROOT / "tests" / "playwright" / "exported"
 DECISIONS_LOG = REPO_ROOT / "reports" / "replay_decisions.json"
 
+# Sites Kane's headless planner falls back to when it loses the AUT URL anchor.
+# If a session's evidence (summary + one_liner) mentions one of these but not
+# the configured TARGET_URL, we treat the recording as drifted and retry.
+_KNOWN_DRIFT_HOSTS = (
+    "kaneai-playground.lambdatest.io",
+    "ecommerce-playground.lambdatest.io",
+)
+
+# Maximum retries per AC when drift is detected. Cap is low because each retry
+# costs a full Kane session (~3-5 min); two re-rolls is usually enough to escape
+# a transient planner glitch, and persistent drift is a deeper problem to flag.
+_MAX_DRIFT_RETRIES = 2
+
+
+def _detect_drift(result: dict, target_url: str) -> str | None:
+    """Return a drift reason if the recording landed off the AUT, else None.
+
+    Two signals: explicit mention of a known fallback site, OR absence of the
+    target host in the session evidence Kane summarized. Skipped/errored runs
+    don't get checked — there's no session evidence to compare against."""
+    if result.get("status") not in ("passed", "failed"):
+        return None
+    text = (
+        (result.get("summary") or "") + " " + (result.get("one_liner") or "")
+    ).lower()
+    for site in _KNOWN_DRIFT_HOSTS:
+        if site in text:
+            return f"session evidence mentions {site}"
+    if target_url:
+        target_host = target_url.rstrip("/").split("://", 1)[-1].split("/", 1)[0].lower()
+        if target_host and target_host not in text:
+            return f"target host {target_host} absent from session evidence"
+    return None
+
+
+def _purge_drifted_asset(asset_path: Path | None) -> None:
+    """Delete the asset + its sidecar so the next attempt records fresh.
+    Contaminated assets are worse than no asset at all — every subsequent
+    replay would walk the same broken navigation sequence."""
+    if not asset_path:
+        return
+    if asset_path.exists():
+        asset_path.unlink(missing_ok=True)
+    sidecar = asset_path.with_suffix(".meta.json")
+    if sidecar.exists():
+        sidecar.unlink(missing_ok=True)
+
 
 def build_name() -> str:
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -128,37 +175,71 @@ def dispatch_one(
     record_timeout = int(os.environ.get("KANE_RECORD_TIMEOUT", "300"))
     replay_timeout = int(os.environ.get("KANE_REPLAY_TIMEOUT", "180"))
 
-    if decision.decision == "replay":
-        result = kane_replay.replay(
-            decision.asset_path,
-            session_name=f"Replay {sc_id} | {description[:60]}",
-            build_name=bn,
-            username=username,
-            access_key=access_key,
-            timeout_seconds=replay_timeout,
-            code_export_dir=export_dir,
+    target_url = os.environ.get("TARGET_URL", "").strip()
+    target_asset = decision.asset_path or asset_path_for(sc_id, feature, title)
+    current_decision = decision
+    drift_attempts = 0
+    drift_history: list[str] = []
+
+    while True:
+        if current_decision.decision == "replay":
+            result = kane_replay.replay(
+                current_decision.asset_path,
+                session_name=f"Replay {sc_id} | {description[:60]}",
+                build_name=bn,
+                username=username,
+                access_key=access_key,
+                timeout_seconds=replay_timeout,
+                code_export_dir=export_dir,
+            )
+        else:
+            # record (new asset) or rerecord (asset exists but stale).
+            result = kane_record.record(
+                objective,
+                sc_id=sc_id,
+                requirement_id=requirement_id,
+                description=description,
+                description_hash=current_decision.description_hash,
+                feature=feature,
+                asset_path=target_asset,
+                build_name=bn,
+                username=username,
+                access_key=access_key,
+                timeout_seconds=record_timeout,
+                code_export_dir=export_dir,
+            )
+
+        drift_reason = _detect_drift(result, target_url)
+        if drift_reason is None or drift_attempts >= _MAX_DRIFT_RETRIES:
+            break
+
+        drift_attempts += 1
+        drift_history.append(drift_reason)
+        print(
+            f"[drift] {sc_id} attempt {drift_attempts}/{_MAX_DRIFT_RETRIES}: "
+            f"{drift_reason} — purging contaminated asset and re-recording fresh",
+            flush=True,
         )
-    else:
-        # record (new asset) or rerecord (asset exists but stale).
-        target_asset = decision.asset_path or asset_path_for(sc_id, feature, title)
-        result = kane_record.record(
-            objective,
+        # Whether the drift happened during replay (asset contaminated) or
+        # record (Kane's first plan landed off-site), the only way out is to
+        # wipe the artifact and try the record path again — replaying a
+        # contaminated asset would walk the same broken sequence.
+        _purge_drifted_asset(current_decision.asset_path)
+        current_decision = ReplayDecision(
             sc_id=sc_id,
             requirement_id=requirement_id,
-            description=description,
-            description_hash=decision.description_hash,
-            feature=feature,
+            decision="record",
             asset_path=target_asset,
-            build_name=bn,
-            username=username,
-            access_key=access_key,
-            timeout_seconds=record_timeout,
-            code_export_dir=export_dir,
+            reason=f"drift retry {drift_attempts}: {drift_reason}",
+            description_hash=current_decision.description_hash,
         )
 
     result["asset_path"] = str(decision.asset_path or "")
-    result["replay_decision"] = decision.decision
-    return decision, result
+    result["replay_decision"] = current_decision.decision
+    if drift_attempts:
+        result["drift_retries"] = drift_attempts
+        result["drift_history"] = drift_history
+    return current_decision, result
 
 
 def dispatch_all(
