@@ -4,8 +4,8 @@
     "requirements_covered": 7,
     "requirements_total": 7,
     "executed": 6,
-    "passed": 5,
-    "pass_rate": 83.3,
+    "passed": 6,
+    "pass_rate": 100.0,
     "browsers_tested": [
       "chrome",
       "firefox"
@@ -13,9 +13,7 @@
     "untested_requirements": [
       "AC-007"
     ],
-    "failing_scenarios": [
-      "SC-005"
-    ]
+    "failing_scenarios": []
   },
   "rows": [
     {
@@ -37,14 +35,14 @@
       },
       "kane_ai_result": "passed",
       "kane_session_link": "",
-      "kane_one_liner": "created a task with a due date on nosecretformula.vercel.app",
-      "kane_summary": "Opened nosecretformula.vercel.app and went to the Tasks page.\nUsed the task creation form to enter a task title, pick a due date, and save the task.\nConfirmed the task list shows a task with a due date (e.g., 2026-05-17).",
+      "kane_one_liner": "created a new task on nosecretformula.vercel.app",
+      "kane_summary": "Opened nosecretformula.vercel.app and went to the Tasks page.\nEntered a new task with the title \u201cPay rent\u201d and set the due date to 2026-05-31.\nSaved the task and confirmed it appears in the tasks list with the due date shown.",
       "kane_steps": [
-        "navigate: Navigate to the target site https://nosecretformula.vercel.app/",
-        "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
-        "type: Filled '2026-05-17' via DOM locator: role=textbox[name='Due date']",
+        "navigate: Navigate to https://nosecretformula.vercel.app/ to access the task creation page",
+        "type: Filled 'Pay rent' via DOM locator: role=textbox[name='Title']",
+        "type: Filled '2026-05-31' via DOM locator: role=textbox[name='Due date']",
         "click: Clicked via DOM locator: role=button[name='Add task']",
-        "analyze: ANALYZE(visual, 'Is there a task listed in the table that shows a due date?', ke",
+        "analyze: ANALYZE(visual, 'Is there a task listed in the table with a date shown in the \u201cD",
         "assert: On https://nosecretformula.vercel.app/ \u2014 User can create a task with a title and"
       ],
       "playwright_status": "passed",
@@ -52,7 +50,7 @@
         "chrome": "passed",
         "firefox": "passed"
       },
-      "session_link": "https://automation.lambdatest.com/test?testID=6IAOR-WHEOU-EPBKA-P4YIE",
+      "session_link": "https://automation.lambdatest.com/test?testID=SJ1T3-9SLB4-WJORU-3GN6Z",
       "overall": "passed"
     },
     {
@@ -74,15 +72,15 @@
       },
       "kane_ai_result": "passed",
       "kane_session_link": "",
-      "kane_one_liner": "created three tasks and verified their ordering on nosecretformula.vercel.app",
-      "kane_summary": "Opened nosecretformula.vercel.app and went to the Tasks page.\nUsed the \u201cAdd a task\u201d form to create three tasks: \u201cOverdue 002\u201d (2026-05-10), \u201cSoon 002\u201d (2026-05-18), and \u201cLater 002\u201d (2026-05-25).\nVerified the task list shows all three tasks in due-date order, with \u201cOverdue 002\u201d (past due) pinned at the top.\nStopped after verification and left the tasks in place (did not delete them).",
+      "kane_one_liner": "created three tasks on nosecretformula.vercel.app",
+      "kane_summary": "Opened nosecretformula.vercel.app and went to the Tasks page.\nUsed the \u201cAdd a task\u201d form to add three tasks: \u201cOverdue 002\u201d (2026-05-10), \u201cSoon 002\u201d (2026-05-18), and \u201cLater 002\u201d (2026-05-25).\nVerified the task list shows all three tasks sorted by due date, with \u201cOverdue 002\u201d pinned to the top because it is overdue.\nStopped after verification and left the tasks in place (did not delete them).",
       "kane_steps": [],
       "playwright_status": "passed",
       "playwright_per_browser": {
         "chrome": "passed",
         "firefox": "passed"
       },
-      "session_link": "https://automation.lambdatest.com/test?testID=LWZJB-GY1LJ-MQ3AW-2DAT1",
+      "session_link": "https://automation.lambdatest.com/test?testID=5CUPW-7HMRT-CR2MM-LYORX",
       "overall": "passed"
     },
     {
@@ -105,13 +103,15 @@
       "kane_ai_result": "passed",
       "kane_session_link": "",
       "kane_one_liner": "marked a task as complete on nosecretformula.vercel.app",
-      "kane_summary": "Opened nosecretformula.vercel.app and went to the Tasks page.\nFound an existing task in the list and used the completion control to mark it as complete.\nConfirmed the task\u2019s status changed to \u201cdone\u201d (e.g., the \u201cTest task\u201d row shows Status: done).",
+      "kane_summary": "Opened nosecretformula.vercel.app and went to the Tasks page.\nFound an existing task in the list and marked it as complete.\nConfirmed the task showed as done (the DONE checkbox was checked and the status changed to \"done\").",
       "kane_steps": [
-        "navigate: Navigate to https://nosecretformula.vercel.app/ to begin verifying that a user c",
+        "navigate: Navigate to the objective site https://nosecretformula.vercel.app/",
         "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
         "click: Clicked via DOM locator: role=button[name='Add task']",
         "click: Clicked via DOM locator: role=button[name='\u2610']",
-        "analyze: ANALYZE(visual, 'Is there a task row showing the status as \"done\"?', key='__cp_f",
+        "analyze: ANALYZE(visual, \"Is any task in the tasks table visibly marked as completed (e.g",
+        "assert: Verify user can mark a task as complete",
+        "analyze: ANALYZE(visual, 'Is there a task row showing a checked checkbox with the status ",
         "assert: On https://nosecretformula.vercel.app/ \u2014 User can mark a task as complete"
       ],
       "playwright_status": "passed",
@@ -119,7 +119,7 @@
         "chrome": "passed",
         "firefox": "passed"
       },
-      "session_link": "https://automation.lambdatest.com/test?testID=RWHFY-YE19C-5O6NO-JAKLE",
+      "session_link": "https://automation.lambdatest.com/test?testID=9Z5EV-RPIT2-KY15Q-NRQNI",
       "overall": "passed"
     },
     {
@@ -142,9 +142,9 @@
       "kane_ai_result": "passed",
       "kane_session_link": "",
       "kane_one_liner": "edited a task on nosecretformula.vercel.app",
-      "kane_summary": "Opened nosecretformula.vercel.app as requested.\nNavigated to an existing task\u2019s edit page.\nReached the \u201cEdit task #1\u201d form where the Title field (showing \u201cTest task\u201d) is visible, indicating the task can be edited.",
+      "kane_summary": "Opened https://nosecretformula.vercel.app/ and navigated to an existing task\u2019s edit page.\nVerified the \u201cEdit task #1\u201d form was displayed with a Title field (showing \u201cTest task\u201d).\nEnded on the task edit page at https://nosecretformula.vercel.app/tasks/1/edit after entering edit mode.",
       "kane_steps": [
-        "navigate: navigate to https://nosecretformula.vercel.app/",
+        "navigate: Navigate to https://nosecretformula.vercel.app/",
         "type: Filled 'Test task' via DOM locator: role=textbox[name='Title']",
         "click: Clicked via DOM locator: role=button[name='Add task']",
         "click: Clicked via DOM locator: role=link[name='Edit']",
@@ -156,7 +156,7 @@
         "chrome": "passed",
         "firefox": "passed"
       },
-      "session_link": "https://automation.lambdatest.com/test?testID=GIOE7-RCZSO-7GFLD-GM3JO",
+      "session_link": "https://automation.lambdatest.com/test?testID=HJHMR-S33OK-ZORNJ-7ZTHX",
       "overall": "passed"
     },
     {
@@ -176,38 +176,18 @@
         "he_executed": true,
         "regression": true
       },
-      "kane_ai_result": "failed",
+      "kane_ai_result": "passed",
       "kane_session_link": "",
-      "kane_one_liner": "attempted to add and delete a task on nosecretformula.vercel.app",
-      "kane_summary": "The run attempted to open the TaskFlow app, create a new task titled \u201cTest task to delete,\u201d and then delete it by using the \u201cTrash\u201d action.\nNavigation appeared inconsistent at the start: the first navigation step shows it landed on a different site (kaneai-playground.lambdatest.io) instead of the TaskFlow page, which suggests a redirect or wrong starting page before it later reached nosecretformula.vercel.app.\nThe task entry \u201cTest task to delete\u201d was typed into the Title field and \u201cAdd task\u201d was clicked, but the later screen still showed the task list and did not clearly confirm that the new item was added as a result of that click.\nThe deletion step clicked the \u201cTrash\u201d button for a task, but the final page remained on the main Tasks page (URL ends in /tasks) rather than showing the Trash page or clearly showing the task removed.\nThe run then clicked the top \u201cTrash\u201d link, but it still ended on /tasks, so the click likely did not take effect (for example, the link did not navigate, was intercepted, or the page did not update in time), which prevented confirming the task was moved to Trash/deleted.",
-      "kane_steps": [
-        "navigate: Navigate to https://nosecretformula.vercel.app/",
-        "type: Filled 'Test task to delete' via DOM locator: role=textbox[name='Title']",
-        "click: Clicked via DOM locator: role=button[name='Add task']",
-        "click: Clicked via DOM locator: role=button[name='Trash']",
-        "click: Clicked via DOM locator: role=link[name='Trash']",
-        "click: Clicked via DOM locator: role=link[name='Tasks']",
-        "click: Clicked via DOM locator: role=button[name='Trash']",
-        "click: Clicked via DOM locator: role=link[name='Trash']",
-        "click: Clicked via DOM locator: role=link[name='Tasks']",
-        "click: Clicked via DOM locator: role=link[name='Edit']",
-        "click: Clicked via DOM locator: role=link[name='Cancel']",
-        "click: Clicked via DOM locator: role=button[name='Trash']",
-        "click: Clicked via DOM locator: role=link[name='Trash']",
-        "click: Clicked via DOM locator: role=link[name='Release notes']",
-        "click: Clicked via DOM locator: role=link[name='Tasks']",
-        "tool_call: Called external tool: refresh with parameters: {}",
-        "click: Clicked via DOM locator: role=button[name='Trash']",
-        "click: Clicked via DOM locator: role=link[name='Trash']",
-        "click: Clicked via DOM locator: role=link[name='Tasks']"
-      ],
+      "kane_one_liner": "created and deleted a task on nosecretformula.vercel.app",
+      "kane_summary": "Opened nosecretformula.vercel.app to create and then delete a task.\nAdded a new task titled \"Test delete 005\" with due date 2026-05-20 using the Add a task form.\nClicked the red Trash button next to \"Test delete 005\" to delete it.\nWent to the Trash page and saw the empty-state message \"Trash is empty.\", confirming the delete action completed.",
+      "kane_steps": [],
       "playwright_status": "passed",
       "playwright_per_browser": {
         "chrome": "passed",
         "firefox": "passed"
       },
-      "session_link": "https://automation.lambdatest.com/test?testID=2XSXR-ARWEW-OYPHE-FS6BC",
-      "overall": "failed"
+      "session_link": "https://automation.lambdatest.com/test?testID=73NPW-FAVEK-VK22V-E6BVV",
+      "overall": "passed"
     },
     {
       "requirement_id": "AC-006",
@@ -228,12 +208,15 @@
       },
       "kane_ai_result": "passed",
       "kane_session_link": "",
-      "kane_one_liner": "filtered tasks by status on nosecretformula.vercel.app",
-      "kane_summary": "Opened https://nosecretformula.vercel.app/ to view the task list.\nUsed the status filter controls to switch between Active, Done, and All.\nEnded on the Done filter view, with the Done option selected and the URL showing status=done.",
+      "kane_one_liner": "switched task status filters on nosecretformula.vercel.app",
+      "kane_summary": "Opened https://nosecretformula.vercel.app/ and went to the Tasks page.\nUsed the status filter buttons to switch the task list view between Active, Done, and All.\nConfirmed the filter controls (Active/Done/All) were visible and the task list updated based on the selected status.\nFinished on the Active tasks view.",
       "kane_steps": [
-        "navigate: Navigate to https://nosecretformula.vercel.app/ to access the task list app.",
+        "navigate: Navigate to https://nosecretformula.vercel.app/ (the target app for task status ",
         "click: Clicked via DOM locator: role=link[name='Done']",
-        "analyze: ANALYZE(visual, 'Is the \"Done\" status filter button selected on the task list pa",
+        "click: Clicked via DOM locator: role=link[name='Active']",
+        "analyze: ANALYZE(visual, \"Is it apparent on the page that the task list supports filterin",
+        "assert: User can filter the task list by status (active / done / all)",
+        "analyze: ANALYZE(visual, 'Is the status filter control with the \"Active\", \"Done\", and \"Al",
         "assert: On https://nosecretformula.vercel.app/ \u2014 User can filter the task list by status"
       ],
       "playwright_status": "passed",
@@ -241,7 +224,7 @@
         "chrome": "passed",
         "firefox": "passed"
       },
-      "session_link": "https://automation.lambdatest.com/test?testID=KCOIX-9QV2H-BKCI9-NKNEU",
+      "session_link": "https://automation.lambdatest.com/test?testID=ETCKY-5RMZB-YYJOP-DS645",
       "overall": "passed"
     },
     {
@@ -263,15 +246,15 @@
       },
       "kane_ai_result": "passed",
       "kane_session_link": "",
-      "kane_one_liner": "filtered tasks by a blue label on nosecretformula.vercel.app",
-      "kane_summary": "Opened nosecretformula.vercel.app.\nCreated or selected a task and applied a colored label to it (a blue label was shown next to \u201cLabel demo task\u201d).\nUsed the label filter to show only tasks with the blue label, ending on the filtered tasks page.",
+      "kane_one_liner": "filtered tasks by a red label on nosecretformula.vercel.app",
+      "kane_summary": "Opened nosecretformula.vercel.app.\nCreated or selected a task and added a red label to it (shown as a red pill next to \u201cLabel demo task\u201d).\nUsed the label filter to show only tasks with the red label, ending on the tasks page filtered to label=red.",
       "kane_steps": [
-        "navigate: Navigate to https://nosecretformula.vercel.app/",
+        "navigate: Navigate to https://nosecretformula.vercel.app/ to start the task labeling demo.",
         "type: Filled 'Label demo task' via DOM locator: role=textbox[name='Title']",
-        "select: Selected 'blue' via DOM locator: role=combobox[name='Label']",
+        "select: Selected 'red' via DOM locator: role=combobox[name='Label']",
         "click: Clicked via DOM locator: role=button[name='Add task']",
-        "click: Clicked via DOM locator: role=link[name='blue']",
-        "analyze: ANALYZE(visual, 'Is a task shown in the list with a colored label badge next to ",
+        "click: Clicked via DOM locator: role=link[name='red']",
+        "analyze: ANALYZE(visual, 'Is there a task shown in the list with a colored label pill nex",
         "assert: On https://nosecretformula.vercel.app/ \u2014 User can attach a colored label to a ta"
       ],
       "playwright_status": "data_unavailable",
@@ -284,18 +267,15 @@
     }
   ],
   "result_analysis": {
-    "overall_health": "at_risk",
-    "kane_pass_rate": 85.7,
-    "playwright_pass_rate": 83.3,
-    "risk_level": "medium",
+    "overall_health": "healthy",
+    "kane_pass_rate": 100.0,
+    "playwright_pass_rate": 100.0,
+    "risk_level": "low",
     "key_findings": [
-      "AC-005: failed Kane AI verification; Playwright status is passed.",
       "1 requirement(s) have no Playwright execution data (data_unavailable)."
     ],
-    "failed_requirements": [
-      "AC-005"
-    ],
-    "recommendation_hint": "Release blocked: 1 failing requirement(s) and 1 with no execution data. Resolve before shipping.",
+    "failed_requirements": [],
+    "recommendation_hint": "All requirements passed verification and regression across all browsers; release can proceed with confidence.",
     "browsers_tested": [
       "chrome",
       "firefox"

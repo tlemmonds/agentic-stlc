@@ -189,6 +189,14 @@ def sync_scenarios(requirements: list, existing: list) -> list:
             if existing_sc
             else _derive_fn_name(sc_id, title)
         )
+        # Preserve any custom kane_objective the operator (or release_diff)
+        # set on an existing scenario. Multi-step objectives like SC-002's
+        # setup → verify lifecycle are hand-authored and would be silently
+        # destroyed if we always defaulted to the AC description.
+        kane_objective = (
+            (existing_sc or {}).get("kane_objective")
+            or f"On {TARGET_URL} — {req['description']}"
+        )
         result.append({
             "id":                 sc_id,
             "test_case_id":       tc_id,
@@ -202,6 +210,7 @@ def sync_scenarios(requirements: list, existing: list) -> list:
             ],
             "expected_result":    req.get("kane_summary") or req["description"],
             "kane_url":           TARGET_URL,
+            "kane_objective":     kane_objective,
             "last_verified":      TODAY,
         })
 

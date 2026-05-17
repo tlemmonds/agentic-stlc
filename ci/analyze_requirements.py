@@ -467,6 +467,8 @@ def main():
             "kane_code_export_dir": kane.get("code_export_dir", ""),
             "kane_asset_path": kane.get("asset_path", ""),
             "kane_replay_decision": kane.get("replay_decision", ""),
+            "kane_drift_retries": kane.get("drift_retries", 0),
+            "kane_drift_history": kane.get("drift_history", []),
             "last_analyzed": today,
         }
         analyzed.append(item)

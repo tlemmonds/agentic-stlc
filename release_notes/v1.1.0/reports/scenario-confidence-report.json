@@ -2,22 +2,22 @@
   "summary": {
     "total_requirements": 7,
     "by_confidence_level": {
-      "HIGH": 6,
+      "HIGH": 7,
       "MEDIUM": 0,
-      "LOW": 1
+      "LOW": 0
     },
-    "high_confidence_count": 6,
-    "critical_gap_count": 1,
+    "high_confidence_count": 7,
+    "critical_gap_count": 0,
     "missing_negative_coverage": 7,
     "missing_edge_case_coverage": 7,
-    "kane_failed_requirements": 1,
+    "kane_failed_requirements": 0,
     "no_mobile_coverage": 7,
     "quality_signals": {
-      "confidence_gate_passed": false,
+      "confidence_gate_passed": true,
       "high_criticality_low_confidence": [],
       "missing_negative_coverage_count": 7
     },
-    "analyzed_at": "2026-05-16T16:18:43.923601+00:00"
+    "analyzed_at": "2026-05-17T17:47:10.703751+00:00"
   },
   "records": [
     {
@@ -143,8 +143,8 @@
       "acceptance_criterion": "User can delete a task",
       "feature": "GENERAL",
       "criticality": "LOW",
-      "kane_status": "failed",
-      "confidence_level": "LOW",
+      "kane_status": "passed",
+      "confidence_level": "HIGH",
       "coverage_dimensions": {
         "happy_path": true,
         "negative": false,
@@ -153,17 +153,16 @@
         "real_body": false
       },
       "coverage_gaps": [
-        "Missing negative/error scenario coverage",
-        "Kane AI functional verification failed"
+        "Missing negative/error scenario coverage"
       ],
       "recommendations": [
         "Add scenario: 'User can delete a task' with invalid/error conditions",
         "Consider adding mobile viewport test"
       ],
-      "confidence_reason": "Missing negative/error scenario coverage; Kane AI functional verification failed",
+      "confidence_reason": "Missing negative/error scenario coverage",
       "risk_assessment": {
         "criticality": "LOW",
-        "risk_level": "MEDIUM"
+        "risk_level": "LOW"
       }
     },
     {

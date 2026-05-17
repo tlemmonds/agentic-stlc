@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-16T16:18:44.175737+00:00",
+  "generated_at": "2026-05-17T17:47:10.945081+00:00",
   "summary": {
     "total_requirements": 7,
     "covered_full": 6,
@@ -13,7 +13,7 @@
     "android_coverage_pct": 0.0,
     "flaky_count": 0,
     "high_risk_count": 0,
-    "medium_risk_count": 2,
+    "medium_risk_count": 1,
     "missing_scenario_types": 2
   },
   "requirements": [
@@ -186,7 +186,7 @@
       "description": "User can delete a task",
       "feature": "GENERAL",
       "criticality": "MEDIUM",
-      "kane_status": "failed",
+      "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
         "SC-005"
@@ -218,7 +218,7 @@
       ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 100.0,
-      "risk_level": "MEDIUM",
+      "risk_level": "LOW",
       "flaky": false,
       "retry_count": 0
     },

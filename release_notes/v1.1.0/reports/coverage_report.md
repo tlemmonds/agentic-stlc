@@ -1,6 +1,6 @@
 # Requirement Coverage Analysis Report
 
-_Generated: 2026-05-16 16:18 UTC_
+_Generated: 2026-05-17 17:47 UTC_
 
 ## Coverage Summary
 
@@ -33,7 +33,7 @@ _Generated: 2026-05-16 16:18 UTC_
 | `AC-002` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-003` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-004` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-005` | FULL | 2 | 2 | 0 | 0 | MEDIUM |
+| `AC-005` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-006` | FULL | 2 | 2 | 0 | 1 | LOW |
 | `AC-007` | PARTIAL | 0 | 0 | 0 | 1 | MEDIUM |
 
@@ -115,7 +115,7 @@ _Generated: 2026-05-16 16:18 UTC_
 
 > User can delete a task
 
-- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** MEDIUM  |  **Kane:** failed
+- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 100.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no

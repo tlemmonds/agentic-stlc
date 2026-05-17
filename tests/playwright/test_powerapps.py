@@ -11,7 +11,7 @@ from playwright.sync_api import expect
 @pytest.mark.scenario("SC-001")
 @pytest.mark.requirement("AC-001")
 def test_sc_001_user_can_create_a_task_with_a_title_and(page):
-    """SC-001: created a task with a due date on nosecretformula.vercel.app."""
+    """SC-001: created a new task on nosecretformula.vercel.app."""
     # No implementation available for AC-001
     pytest.skip("No test body for AC-001")
 
@@ -19,7 +19,7 @@ def test_sc_001_user_can_create_a_task_with_a_title_and(page):
 @pytest.mark.scenario("SC-002")
 @pytest.mark.requirement("AC-002")
 def test_sc_002_user_can_list_all_tasks_ordered_by_due_d(page):
-    """SC-002: created three tasks and verified their ordering on nosecretformula.vercel.app."""
+    """SC-002: created three tasks on nosecretformula.vercel.app."""
     # No implementation available for AC-002
     pytest.skip("No test body for AC-002")
 
@@ -43,7 +43,7 @@ def test_sc_004_user_can_edit_a_task_s_title_or_due_date(page):
 @pytest.mark.scenario("SC-005")
 @pytest.mark.requirement("AC-005")
 def test_sc_005_user_can_delete_a_task(page):
-    """SC-005: attempted to add and delete a task on nosecretformula.vercel.app."""
+    """SC-005: created and deleted a task on nosecretformula.vercel.app."""
     # No implementation available for AC-005
     pytest.skip("No test body for AC-005")
 
@@ -51,15 +51,15 @@ def test_sc_005_user_can_delete_a_task(page):
 @pytest.mark.scenario("SC-006")
 @pytest.mark.requirement("AC-006")
 def test_sc_006_user_can_filter_the_task_list_by_status(page):
-    """SC-006: filtered tasks by status on nosecretformula.vercel.app."""
+    """SC-006: switched task status filters on nosecretformula.vercel.app."""
     # No implementation available for AC-006
     pytest.skip("No test body for AC-006")
 
 
 @pytest.mark.scenario("SC-007")
 @pytest.mark.requirement("AC-007")
-def test_sc_007_filtered_tasks_by_a_blue_label_on_nosecretformula_vercel_app(page):
-    """SC-007: filtered tasks by a blue label on nosecretformula.vercel.app."""
+def test_sc_007_filtered_tasks_by_a_red_label_on_nosecretformula_vercel_app(page):
+    """SC-007: filtered tasks by a red label on nosecretformula.vercel.app."""
     # No implementation available for AC-007
     pytest.skip("No test body for AC-007")
 

@@ -27,12 +27,17 @@ import kane_replay
 CODE_EXPORT_CACHE = REPO_ROOT / "tests" / "playwright" / "exported"
 DECISIONS_LOG = REPO_ROOT / "reports" / "replay_decisions.json"
 
-# Sites Kane's headless planner falls back to when it loses the AUT URL anchor.
-# If a session's evidence (summary + one_liner) mentions one of these but not
-# the configured TARGET_URL, we treat the recording as drifted and retry.
+# Sites/phrases Kane's headless planner falls back to when it loses the AUT
+# URL anchor. Both literal hostnames and generic phrasing — Kane sometimes
+# summarizes a drift as "first landing on a LambdaTest playground page"
+# without naming the exact host. If a session's evidence (summary +
+# one_liner) mentions any of these but not the configured TARGET_URL, we
+# treat the recording as drifted and retry.
 _KNOWN_DRIFT_HOSTS = (
     "kaneai-playground.lambdatest.io",
     "ecommerce-playground.lambdatest.io",
+    "lambdatest playground",
+    "lambdatest demo",
 )
 
 # Maximum retries per AC when drift is detected. Cap is low because each retry
@@ -44,9 +49,12 @@ _MAX_DRIFT_RETRIES = 2
 def _detect_drift(result: dict, target_url: str) -> str | None:
     """Return a drift reason if the recording landed off the AUT, else None.
 
-    Two signals: explicit mention of a known fallback site, OR absence of the
-    target host in the session evidence Kane summarized. Skipped/errored runs
-    don't get checked — there's no session evidence to compare against."""
+    Only signal: explicit mention of a known fallback site in the session
+    evidence. The previous "target host absent" check was too aggressive —
+    successful replays often have terse summaries that don't repeat the host
+    name, leading to false-positive drifts that purged proven assets.
+    Persisted drift to a brand-new fallback site requires adding that site
+    to _KNOWN_DRIFT_HOSTS rather than relying on inverse-matching."""
     if result.get("status") not in ("passed", "failed"):
         return None
     text = (
@@ -55,10 +63,6 @@ def _detect_drift(result: dict, target_url: str) -> str | None:
     for site in _KNOWN_DRIFT_HOSTS:
         if site in text:
             return f"session evidence mentions {site}"
-    if target_url:
-        target_host = target_url.rstrip("/").split("://", 1)[-1].split("/", 1)[0].lower()
-        if target_host and target_host not in text:
-            return f"target host {target_host} absent from session evidence"
     return None
 
 
@@ -73,6 +77,57 @@ def _purge_drifted_asset(asset_path: Path | None) -> None:
     sidecar = asset_path.with_suffix(".meta.json")
     if sidecar.exists():
         sidecar.unlink(missing_ok=True)
+    cached = _code_export_cache_path(asset_path)
+    if cached and cached.exists():
+        cached.unlink(missing_ok=True)
+
+
+def _code_export_cache_path(asset_path: Path | None) -> Path | None:
+    """Where the Playwright code-export is cached alongside the test.md asset.
+    Kane only emits --code-export on fresh records, not replays, so the
+    cache lets Stage 3a still find a real test body on replay-heavy runs
+    instead of falling through to pytest.skip stubs."""
+    if not asset_path:
+        return None
+    stem = asset_path.stem
+    if stem.endswith("_test"):
+        stem = stem[:-len("_test")]
+    return asset_path.with_name(f"{stem}.playwright.py")
+
+
+def _cache_code_export(asset_path: Path | None, code_export_dir: Path | None) -> bool:
+    """After a successful record, persist Kane's Playwright code-export so
+    future replays can restore it. Returns True if a file was cached."""
+    cache = _code_export_cache_path(asset_path)
+    if not cache or not code_export_dir:
+        return False
+    live = code_export_dir / "test.py"
+    if not live.exists() or live.stat().st_size == 0:
+        return False
+    try:
+        cache.write_text(live.read_text(encoding="utf-8"), encoding="utf-8")
+        return True
+    except OSError:
+        return False
+
+
+def _restore_code_export(asset_path: Path | None, code_export_dir: Path | None) -> bool:
+    """Before a replay, hydrate code_export_dir from the asset's cached
+    Playwright export so Stage 3a finds something even if Kane doesn't
+    re-emit on replay. No-op if the live dir already has content (don't
+    clobber a fresh export) or if there's no cache yet."""
+    cache = _code_export_cache_path(asset_path)
+    if not cache or not cache.exists() or not code_export_dir:
+        return False
+    live = code_export_dir / "test.py"
+    if live.exists() and live.stat().st_size > 0:
+        return False
+    try:
+        code_export_dir.mkdir(parents=True, exist_ok=True)
+        live.write_text(cache.read_text(encoding="utf-8"), encoding="utf-8")
+        return True
+    except OSError:
+        return False
 
 
 def build_name() -> str:
@@ -183,6 +238,10 @@ def dispatch_one(
 
     while True:
         if current_decision.decision == "replay":
+            # Replays don't trigger Kane's --code-export, so pre-hydrate the
+            # live export dir from the cached copy alongside the asset.
+            # Stage 3a then finds a real test body instead of a skip stub.
+            _restore_code_export(current_decision.asset_path, export_dir)
             result = kane_replay.replay(
                 current_decision.asset_path,
                 session_name=f"Replay {sc_id} | {description[:60]}",
@@ -208,6 +267,10 @@ def dispatch_one(
                 timeout_seconds=record_timeout,
                 code_export_dir=export_dir,
             )
+            # On successful record, persist the export next to the asset
+            # so future replays can hydrate from cache.
+            if result.get("status") == "passed":
+                _cache_code_export(target_asset, export_dir)
 
         drift_reason = _detect_drift(result, target_url)
         if drift_reason is None or drift_attempts >= _MAX_DRIFT_RETRIES:
