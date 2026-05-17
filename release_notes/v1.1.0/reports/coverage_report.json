@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-05-17T17:47:10.945081+00:00",
+  "generated_at": "2026-05-17T21:06:54.402406+00:00",
   "summary": {
     "total_requirements": 7,
-    "covered_full": 6,
-    "covered_partial": 1,
+    "covered_full": 7,
+    "covered_partial": 0,
     "uncovered": 0,
-    "coverage_pct": 85.7,
+    "coverage_pct": 100.0,
     "any_coverage_pct": 100.0,
     "negative_coverage_pct": 14.3,
-    "he_coverage_pct": 85.7,
+    "he_coverage_pct": 100.0,
     "mobile_coverage_pct": 0.0,
     "android_coverage_pct": 0.0,
     "flaky_count": 0,
     "high_risk_count": 0,
-    "medium_risk_count": 1,
+    "medium_risk_count": 0,
     "missing_scenario_types": 2
   },
   "requirements": [
@@ -274,7 +274,7 @@
       "feature": "FILTER",
       "criticality": "LOW",
       "kane_status": "passed",
-      "coverage_status": "PARTIAL",
+      "coverage_status": "FULL",
       "covered_scenarios": [
         "SC-007"
       ],
@@ -285,11 +285,11 @@
         }
       ],
       "execution_status": {
-        "total": 0,
-        "passed": 0,
+        "total": 2,
+        "passed": 2,
         "failed": 0,
         "skipped": 0,
-        "data_unavailable": 1,
+        "data_unavailable": 0,
         "flaky": 0
       },
       "coverage_categories": {
@@ -299,15 +299,18 @@
         "security": false,
         "mobile": false,
         "android": false,
-        "he_executed": false,
-        "regression": false,
+        "he_executed": true,
+        "regression": true,
         "api_integration": false,
         "accessibility": false
       },
-      "browsers_tested": [],
+      "browsers_tested": [
+        "chrome",
+        "firefox"
+      ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 0.0,
-      "risk_level": "MEDIUM",
+      "risk_level": "LOW",
       "flaky": false,
       "retry_count": 0
     }
@@ -327,8 +330,8 @@
       "feature": "FILTER",
       "criticality": "LOW",
       "total": 2,
-      "covered": 1,
-      "partial": 1,
+      "covered": 2,
+      "partial": 0,
       "none": 0,
       "failed": 0,
       "flaky": 0

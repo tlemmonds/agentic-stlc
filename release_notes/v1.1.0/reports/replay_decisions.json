@@ -13,7 +13,7 @@
       "sc_id": "SC-002",
       "requirement_id": "AC-002",
       "decision": "record",
-      "asset_path": "tests\\kane\\general\\sc_002_created_three_tasks_and_verified_their_ordering_on_nosecretf_test.md",
+      "asset_path": "tests\\kane\\general\\sc_002_created_three_tasks_on_nosecretformula_vercel_app_test.md",
       "reason": "no asset on disk yet",
       "description_hash": "0e3ec6797528"
     },
@@ -37,7 +37,7 @@
       "sc_id": "SC-005",
       "requirement_id": "AC-005",
       "decision": "record",
-      "asset_path": "tests\\kane\\general\\sc_005_attempted_to_add_and_delete_a_task_on_nosecretformula_vercel_test.md",
+      "asset_path": "tests\\kane\\general\\sc_005_created_and_deleted_a_task_on_nosecretformula_vercel_app_test.md",
       "reason": "no asset on disk yet",
       "description_hash": "92367c2b3e2d"
     },

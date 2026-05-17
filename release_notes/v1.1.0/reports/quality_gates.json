@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-17T17:47:11.345178+00:00",
+  "generated_at": "2026-05-17T21:06:54.737010+00:00",
   "gates_passed": true,
   "critical_failures": 0,
   "warnings": 0,
@@ -16,10 +16,10 @@
       "gate": "Minimum requirement coverage",
       "severity": "WARNING",
       "passed": true,
-      "actual": 85.7,
+      "actual": 100.0,
       "threshold": 50.0,
       "unit": "%",
-      "detail": "6 of 7 requirements fully covered"
+      "detail": "7 of 7 requirements fully covered"
     },
     {
       "gate": "Minimum test pass rate",
@@ -28,7 +28,7 @@
       "actual": 100.0,
       "threshold": 75.0,
       "unit": "%",
-      "detail": "6 passed of 6 executed"
+      "detail": "7 passed of 7 executed"
     },
     {
       "gate": "Flaky test threshold",

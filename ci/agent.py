@@ -113,8 +113,14 @@ def _normalize_he_status(raw_status: str, he_tasks: list) -> str:
 
 # ── Deterministic test generation ──────────────────────────────────────────
 def _derive_fn_name(sc_id: str, title: str) -> str:
-    """Derive a stable pytest function name from scenario ID + title."""
-    slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")[:50]
+    """Derive a stable pytest function name from scenario ID + title.
+
+    Must match collect_kane_exports._make_fn_name exactly — those two
+    functions co-determine pytest_selection.txt and test_powerapps.py's
+    actual function names. Length mismatch causes HE to request a function
+    by a different name than what was generated → silent data_unavailable.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "_", title.lower()).strip("_")[:60]
     return f"test_{sc_id.lower().replace('-', '_')}_{slug}"
 
 TEST_HEADER = '''\
@@ -184,10 +190,12 @@ def sync_scenarios(requirements: list, existing: list) -> list:
             )
 
         title = req.get("kane_one_liner") or req.get("title", req["id"])
+        # Fix None-fallthrough: existing_sc may carry function_name=None from
+        # an earlier broken run. Always derive when missing rather than
+        # propagating None into pytest_selection.txt.
         fn_name = (
-            existing_sc.get("function_name")
-            if existing_sc
-            else _derive_fn_name(sc_id, title)
+            (existing_sc.get("function_name") if existing_sc else None)
+            or _derive_fn_name(sc_id, title)
         )
         # Preserve any custom kane_objective the operator (or release_diff)
         # set on an existing scenario. Multi-step objectives like SC-002's

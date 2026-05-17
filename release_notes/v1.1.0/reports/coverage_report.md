@@ -1,19 +1,19 @@
 # Requirement Coverage Analysis Report
 
-_Generated: 2026-05-17 17:47 UTC_
+_Generated: 2026-05-17 21:06 UTC_
 
 ## Coverage Summary
 
 | Metric | Value |
 |--------|-------|
 | Total Requirements | 7 |
-| Fully Covered | 6 (85.7%) |
-| Partially Covered | 1 |
+| Fully Covered | 7 (100.0%) |
+| Partially Covered | 0 |
 | Uncovered | 0 |
 | Negative Test Coverage | 14.3% |
 | Mobile Coverage | 0.0% |
 | Android Coverage | 0.0% |
-| HyperExecute Coverage | 85.7% |
+| HyperExecute Coverage | 100.0% |
 | Flaky Requirements | 0 |
 | High-Risk Requirements | 0 |
 | Missing Scenario Types | 2 |
@@ -23,7 +23,7 @@ _Generated: 2026-05-17 17:47 UTC_
 | Feature | Criticality | Total | Covered | Partial | Uncovered | Failed | Flaky |
 |---------|-------------|-------|---------|---------|-----------|--------|-------|
 | GENERAL | MEDIUM | 5 | 5 | 0 | 0 | 0 | 0 |
-| FILTER | LOW | 2 | 1 | 1 | 0 | 0 | 0 |
+| FILTER | LOW | 2 | 2 | 0 | 0 | 0 | 0 |
 
 ## Requirement Coverage Detail
 
@@ -35,7 +35,7 @@ _Generated: 2026-05-17 17:47 UTC_
 | `AC-004` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-005` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-006` | FULL | 2 | 2 | 0 | 1 | LOW |
-| `AC-007` | PARTIAL | 0 | 0 | 0 | 1 | MEDIUM |
+| `AC-007` | FULL | 2 | 2 | 0 | 1 | LOW |
 
 ## Per-Requirement Detail
 
@@ -154,17 +154,17 @@ _Generated: 2026-05-17 17:47 UTC_
 
 > User can attach a colored label to a task and filter by label
 
-- **Coverage Status:** PARTIAL  |  **Risk:** MEDIUM  |  **Criticality:** LOW  |  **Kane:** passed
+- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** LOW  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 0.0%
-- **Browsers Tested:** none
+- **Browsers Tested:** chrome, firefox
 - **Flaky:** no
 
 **Coverage Categories:**
 | Happy Path | Negative | Edge Case | Mobile | Android | HyperExecute | Regression |
 |------------|----------|-----------|--------|---------|--------------|------------|
-| ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 
-**Execution:** 0 total | 0 passed | 0 failed | 0 flaky
+**Execution:** 2 total | 2 passed | 0 failed | 0 flaky
 
 **Missing Scenario Types:**
 - `[NEGATIVE]` Apply filter that produces no results
