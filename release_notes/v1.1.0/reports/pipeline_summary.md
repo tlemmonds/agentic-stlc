@@ -5,7 +5,7 @@
 
 | Stage | Name | Status | Normalized Status | Details |
 |-------|------|--------|-------------------|---------|
-| 1 | KaneAI Verification | ✅ | PASSED | 7/7 criteria passed |
+| 1 | KaneAI Verification | 🟡 | PARTIAL | 7/8 criteria passed |
 | 2–4 | Scenarios + Test Gen + Selection | ✅ | PASSED | 7 active tests generated |
 | 5 | HyperExecute Regression | ✅ | PASSED | 14/14 tasks · parser: api_ok |
 | 6 | Result Aggregation | ✅ | PASSED | 14 results normalized |
@@ -13,7 +13,7 @@
 
 ## Execution Links
 
-- [HyperExecute Dashboard](https://hyperexecute.lambdatest.com/hyperexecute/task?jobId=25a5fedd-b72a-409b-93e7-ad85e0e3d78c)
+- [HyperExecute Dashboard](https://hyperexecute.lambdatest.com/hyperexecute/task?jobId=5b3578b5-b68a-4488-88b3-08fb68055d12)
 
 ## Stage 0 · Agentic Release Notes
 
@@ -21,7 +21,7 @@
 
 | Operation | Count |
 |---|---|
-| 🟢 ADD       | 1 |
+| 🟢 ADD       | 2 |
 | 🟡 EDIT      | 1 |
 | 🔴 DELETE    | 1 |
 | ⚠️ Unmatched | 0 |
@@ -29,6 +29,7 @@
 | Op | Scenario | Requirement | Issue | Score | Change |
 |---|---|---|---|---|---|
 | 🟢 ADD | `—` | `AC-007` | — | 0.00 | **new:** User can attach a colored label to a task and filter by label |
+| 🟢 ADD | `—` | `AC-008` | — | 0.00 | **new:** User can view archived tasks on the Archive page and restore them to the active list |
 | 🟡 EDIT | `SC-002` | `AC-002` | — | 0.67 | **was:** User can list all tasks ordered by due date<br>**now:** User can list all tasks ordered by due date, with overdue tasks pinned to the top |
 | 🔴 DELETE | `SC-005` | `AC-005` | — | 1.00 | **removed:** User can delete a task |
 
@@ -38,17 +39,18 @@
 
 | Req ID | Acceptance Criterion | Kane Status | What Kane Observed |
 |---|---|---|---|
-| `AC-001` | User can create a task with a title and a due date | ✅ passed | created a task with a due date on nosecretformula.vercel.app |
-| `AC-002` | User can list all tasks ordered by due date, with overdue ta | ✅ passed | created three tasks on nosecretformula.vercel.app |
+| `AC-001` | User can create a task with a title and a due date | ✅ passed | created a new task with a due date on nosecretformula.vercel.app |
+| `AC-002` | User can list all tasks ordered by due date, with overdue ta | ✅ passed | created two tasks on nosecretformula.vercel.app |
 | `AC-003` | User can mark a task as complete | ✅ passed | marked a task as complete on nosecretformula.vercel.app |
-| `AC-004` | User can edit a task's title or due date | ✅ passed | opened a task for editing on nosecretformula.vercel.app |
-| `AC-005` | User can delete a task | ✅ passed | deleted a task and verified it appeared in Trash on nosecretformula.vercel.app |
+| `AC-004` | User can edit a task's title or due date | ✅ passed | opened a task edit form on nosecretformula.vercel.app |
+| `AC-005` | User can delete a task | ⏭️ skipped | — |
 | `AC-006` | User can filter the task list by status (active / done / all | ✅ passed | filtered tasks by status on nosecretformula.vercel.app |
-| `AC-007` | User can attach a colored label to a task and filter by labe | ✅ passed | filtered tasks by a blue label on nosecretformula.vercel.app |
+| `AC-007` | User can attach a colored label to a task and filter by labe | ✅ passed | filtered tasks by a red label on nosecretformula.vercel.app |
+| `AC-008` | User can view archived tasks on the Archive page and restore | ✅ passed | archived and restored a task on nosecretformula.vercel.app |
 
 ## Stage 2 · Scenario Catalog
 
-Total: **7** — 7 active, 0 new, 0 updated, 0 deprecated
+Total: **8** — 7 active, 0 new, 0 updated, 1 deprecated
 
 ## Stage 2b · Scenario Confidence Analysis
 
@@ -57,7 +59,7 @@ Total: **7** — 7 active, 0 new, 0 updated, 0 deprecated
 | Level | Count | Meaning |
 |---|---|---|
 | 🟢 VERY_HIGH    | 0    | All key dimensions covered; minor gaps acceptable |
-| 🟡 HIGH         | 7         | Core flow validated; some coverage classes missing |
+| 🟡 HIGH         | 8         | Core flow validated; some coverage classes missing |
 | 🟠 MEDIUM       | 0       | Happy path present but important gaps exist |
 | 🔴 LOW          | 0          | Significant gaps — Kane failure or no negative tests on critical feature |
 | 🚨 CRITICAL_GAP | 0 | No scenario mapped — zero automated coverage |
@@ -70,9 +72,10 @@ Total: **7** — 7 active, 0 new, 0 updated, 0 deprecated
 | `AC-002` | `SC-002` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can list all tasks ordered by due date, … |
 | `AC-003` | `SC-003` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can mark a task as complete' with invali… |
 | `AC-004` | `SC-004` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can edit a task's title or due date' wit… |
-| `AC-005` | `SC-005` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can delete a task' with invalid/error co… |
+| `AC-005` | `` | GENERAL | LOW | 🟡 HIGH | skipped |  | Add scenario: 'User can delete a task' with invalid/error co… |
 | `AC-006` | `SC-006` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can filter the task list by status (acti… |
 | `AC-007` | `SC-007` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can attach a colored label to a task and… |
+| `AC-008` | `SC-008` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can view archived tasks on the Archive p… |
 
 ## Stage 3 · Generated Playwright Tests
 
@@ -86,7 +89,7 @@ Run type: **full** · **7** scenario(s) submitted to HyperExecute
 
 | Metric | Raw Value | Normalized | Evidence |
 |--------|-----------|------------|----------|
-| HyperExecute Job | `25a5fedd-b72a-409b-93e7-ad85e0e3d78c` | — | [Open in LambdaTest ↗](https://hyperexecute.lambdatest.com/hyperexecute/task?jobId=25a5fedd-b72a-409b-93e7-ad85e0e3d78c) |
+| HyperExecute Job | `5b3578b5-b68a-4488-88b3-08fb68055d12` | — | [Open in LambdaTest ↗](https://hyperexecute.lambdatest.com/hyperexecute/task?jobId=5b3578b5-b68a-4488-88b3-08fb68055d12) |
 | Job Status | `failed` | **FAILED** | source: api_ok |
 | Parser Status | `api_ok` | — | how status was resolved |
 | Browsers | — | — | chrome, firefox |
@@ -101,13 +104,13 @@ Run type: **full** · **7** scenario(s) submitted to HyperExecute
 
 | Test | Status | Session |
 |---|---|---|
-| `tests/playwright/test_powerapps.py::test_sc_002_user_can_list_all_tasks_ordered_by_due_d` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=7FU4N-6GAWM-LM90A-FSSNQ) |
-| `tests/playwright/test_powerapps.py::test_sc_005_user_can_delete_a_task` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=9PW79-3PW11-TCX6V-BA9PG) |
-| `tests/playwright/test_powerapps.py::test_sc_004_user_can_edit_a_task_s_title_or_due_date` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=B44IF-RIMZK-L4JRL-PDPPD) |
-| `tests/playwright/test_powerapps.py::test_sc_007_filtered_tasks_by_a_blue_label_on_nosecretformula_vercel_app` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=G3ESN-NN8TT-KDXN7-9FUPH) |
-| `tests/playwright/test_powerapps.py::test_sc_006_user_can_filter_the_task_list_by_status` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=HS3CV-BNWVN-XSBQ5-9M6VU) |
-| `tests/playwright/test_powerapps.py::test_sc_001_user_can_create_a_task_with_a_title_and` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=MLTIE-P62RF-KPNBP-DWNPJ) |
-| `tests/playwright/test_powerapps.py::test_sc_003_user_can_mark_a_task_as_complete` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=OI89I-DRTYL-JFM4I-ESP8I) |
+| `tests/playwright/test_powerapps.py::test_sc_004_user_can_edit_a_task_s_title_or_due_date` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=A0CVC-Q2TAC-MWXIB-XVWQG) |
+| `tests/playwright/test_powerapps.py::test_sc_007_filtered_tasks_by_a_red_label_on_nosecretformula_vercel_app` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=CK8GS-VLPBJ-DDNSD-ZUPWT) |
+| `tests/playwright/test_powerapps.py::test_sc_006_user_can_filter_the_task_list_by_status` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=EVGKD-TTDF5-MOU1C-V2SEX) |
+| `tests/playwright/test_powerapps.py::test_sc_002_user_can_list_all_tasks_ordered_by_due_d` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=G9LZE-OBFTK-T3HT9-1QHKL) |
+| `tests/playwright/test_powerapps.py::test_sc_003_user_can_mark_a_task_as_complete` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=GLD5I-GWKH1-LPYKA-5MZLU) |
+| `tests/playwright/test_powerapps.py::test_sc_001_user_can_create_a_task_with_a_title_and` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=KHFZZ-UI81O-KSTAE-2CFQW) |
+| `tests/playwright/test_powerapps.py::test_sc_008_archived_and_restored_a_task_on_nosecretformula_vercel_app` | ✅ passed | [View session](https://automation.lambdatest.com/test?testID=M2DRG-FQMAI-EOLK6-HPUVK) |
 
 ### Browser Breakdown
 
@@ -117,9 +120,9 @@ Run type: **full** · **7** scenario(s) submitted to HyperExecute
 | `SC-002` | ✅ passed | ✅ passed |
 | `SC-003` | ✅ passed | ✅ passed |
 | `SC-004` | ✅ passed | ✅ passed |
-| `SC-005` | ✅ passed | ✅ passed |
 | `SC-006` | ✅ passed | ✅ passed |
 | `SC-007` | ✅ passed | ✅ passed |
+| `SC-008` | ✅ passed | ✅ passed |
 
 ## Stage 6 · Traceability Matrix
 
@@ -127,94 +130,99 @@ Run type: **full** · **7** scenario(s) submitted to HyperExecute
 
 | Req | Acceptance Criterion | Scenario | Test Case | Kane AI | Kane Session | What Kane Saw | Chrome | Firefox | Playwright | Session | Overall |
 |---|---|---|---|---|---|---|--- | ---|---|---|---|
-| `AC-001` | User can create a task with a title and a due date | `SC-001` | `TC-001` | passed | — | created a task with a due date on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=MLTIE-P62RF-KPNBP-DWNPJ) | ✅ passed |
-| `AC-002` | User can list all tasks ordered by due date, with overd… | `SC-002` | `TC-002` | passed | — | created three tasks on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=7FU4N-6GAWM-LM90A-FSSNQ) | ✅ passed |
-| `AC-003` | User can mark a task as complete | `SC-003` | `TC-003` | passed | — | marked a task as complete on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=OI89I-DRTYL-JFM4I-ESP8I) | ✅ passed |
-| `AC-004` | User can edit a task's title or due date | `SC-004` | `TC-004` | passed | — | opened a task for editing on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=B44IF-RIMZK-L4JRL-PDPPD) | ✅ passed |
-| `AC-005` | User can delete a task | `SC-005` | `TC-005` | passed | — | deleted a task and verified it appeared in Trash on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=9PW79-3PW11-TCX6V-BA9PG) | ✅ passed |
-| `AC-006` | User can filter the task list by status (active / done … | `SC-006` | `TC-006` | passed | — | filtered tasks by status on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=HS3CV-BNWVN-XSBQ5-9M6VU) | ✅ passed |
-| `AC-007` | User can attach a colored label to a task and filter by… | `SC-007` | `TC-007` | passed | — | filtered tasks by a blue label on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=G3ESN-NN8TT-KDXN7-9FUPH) | ✅ passed |
+| `AC-001` | User can create a task with a title and a due date | `SC-001` | `TC-001` | passed | — | created a new task with a due date on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=KHFZZ-UI81O-KSTAE-2CFQW) | ✅ passed |
+| `AC-002` | User can list all tasks ordered by due date, with overd… | `SC-002` | `TC-002` | passed | — | created two tasks on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=G9LZE-OBFTK-T3HT9-1QHKL) | ✅ passed |
+| `AC-003` | User can mark a task as complete | `SC-003` | `TC-003` | passed | — | marked a task as complete on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=GLD5I-GWKH1-LPYKA-5MZLU) | ✅ passed |
+| `AC-004` | User can edit a task's title or due date | `SC-004` | `TC-004` | passed | — | opened a task edit form on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=A0CVC-Q2TAC-MWXIB-XVWQG) | ✅ passed |
+| `AC-005` | User can delete a task | `SC-005` | `TC-005` | skipped | — | deprecated in prior release | ⚠️ — | ⚠️ — | deprecated | — | 🚫 deprecated |
+| `AC-006` | User can filter the task list by status (active / done … | `SC-006` | `TC-006` | passed | — | filtered tasks by status on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=EVGKD-TTDF5-MOU1C-V2SEX) | ✅ passed |
+| `AC-007` | User can attach a colored label to a task and filter by… | `SC-007` | `TC-007` | passed | — | filtered tasks by a red label on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=CK8GS-VLPBJ-DDNSD-ZUPWT) | ✅ passed |
+| `AC-008` | User can view archived tasks on the Archive page and re… | `SC-008` | `TC-008` | passed | — | archived and restored a task on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=M2DRG-FQMAI-EOLK6-HPUVK) | ✅ passed |
 
 <details>
 <summary>Kane AI verification steps (expand)</summary>
 
 **`AC-001` — User can create a task with a title and a due date**
 
-- navigate: Navigate to https://nosecretformula.vercel.app/ to access the task creation app
-- type: Filled 'API-created task' via DOM locator: role=textbox[name='Title']
-- type: Filled '2026-05-18' via DOM locator: role=textbox[name='Due date']
+- navigate: Navigate to https://nosecretformula.vercel.app/ (the target site for creating a 
+- type: Filled 'Test task' via DOM locator: role=textbox[name='Title']
+- type: Filled '2026-05-19' via DOM locator: role=textbox[name='Due date']
 - click: Clicked via DOM locator: role=button[name='Add task']
-- wait: Wait briefly while confirming the newly added task is visible in the task list
-- analyze: ANALYZE(visual, 'Is there at least one task listed in the table with a visible d
+- analyze: ANALYZE(visual, 'Is there a task listed in the table that shows a due date?', ke
 - assert: On https://nosecretformula.vercel.app/ — User can create a task with a title and
 
 _Opened nosecretformula.vercel.app and went to the Tasks page.
-Used the task creation form to enter a task title and set a due date.
-Confirmed the task list shows at least one task with a visible due date in the DUE column (e.g., 2026-05-10 and 2026-05-18)._
+Used the task creation form to add a new task by entering a title and choosing a due date.
+Confirmed the new task appeared in the tasks list with a due date shown (2026-05-19)._
 
 **`AC-002` — User can list all tasks ordered by due date, with overdue tasks pinned to the top**
 
 
-_Opened nosecretformula.vercel.app and went to the Tasks page.
-Used the “Add a task” form to create three tasks: “Overdue 002” (2026-05-10), “Soon 002” (2026-05-18), and “Later 002” (2026-05-25).
-Viewed the task list and confirmed the tasks were ordered by due date with “Overdue 002” pinned at the top as the overdue item.
-Stopped after verification and left the tasks in place._
+_Opened the No Secret Formula Tasks page.
+Added a task named "Overdue 002" with due date 2026-05-10 using the Add a task form.
+Added a second task named "Future 002" with due date 2026-05-25 using the Add a task form.
+Verified the task list order: "Overdue 002" appears at the top of the list above "Future 002" (since 2026-05-10 is past due relative to 2026-05-17)._
 
 **`AC-003` — User can mark a task as complete**
 
 - navigate: navigate to https://nosecretformula.vercel.app/
+- type: Filled 'Test task' via DOM locator: role=textbox[name='Title']
+- click: Clicked via DOM locator: role=button[name='Add task']
 - click: Clicked via DOM locator: role=button[name='☐']
-- analyze: ANALYZE(visual, 'Return true or false: In the tasks table (columns DONE/TITLE/LA
-- assert: User can mark a task as complete
-- analyze: ANALYZE(visual, 'Is there at least one task in the list with its Done checkbox c
+- analyze: ANALYZE(visual, 'Is there a task row with its completion checkbox checked (selec
 - assert: On https://nosecretformula.vercel.app/ — User can mark a task as complete
 
-_Opened https://nosecretformula.vercel.app/.
-Found a task in the list and used the Done checkbox to mark it as complete.
-Confirmed at least one task shows as completed (checked Done box and “done” status) on the page._
+_Opened nosecretformula.vercel.app and went to the Tasks page.
+Found an existing task in the task list and used its completion checkbox to mark it as complete.
+Confirmed that at least one task now shows as completed (checkbox visibly checked)._
 
 **`AC-004` — User can edit a task's title or due date**
 
-- navigate: Navigate to https://nosecretformula.vercel.app/ (the app under test for editing 
+- navigate: Navigate to https://nosecretformula.vercel.app/ as specified in the objective.
+- type: Filled 'Test task' via DOM locator: role=textbox[name='Title']
+- click: Clicked via DOM locator: role=button[name='Add task']
 - click: Clicked via DOM locator: role=link[name='Edit']
-- analyze: ANALYZE(visual, 'Is the "Edit task" form visible with editable fields for Title 
+- analyze: ANALYZE(visual, 'Is the "Edit task" form visible with a "Title" input field?', k
 - assert: On https://nosecretformula.vercel.app/ — User can edit a task's title or due dat
 
-_Navigated to nosecretformula.vercel.app.
-Opened an existing task (Task #5) in edit mode.
-Confirmed the Edit Task form was displayed with editable fields for Title and Due date (Title: “Test task”, Due date: “2026-05-18”)._
-
-**`AC-005` — User can delete a task**
-
-
-_Opened nosecretformula.vercel.app.
-Created a new task titled "Test delete 005" with due date 2026-05-20.
-Deleted the "Test delete 005" task using the red Trash button next to it.
-Went to the Trash page and confirmed "Test delete 005" appeared in the list._
+_Navigated to nosecretformula.vercel.app to edit an existing task.
+Opened the edit screen for Task #1 and confirmed the “Edit task #1” form was displayed with a Title field showing “Test task”.
+The run finished on the task edit page (https://nosecretformula.vercel.app/tasks/1/edit)._
 
 **`AC-006` — User can filter the task list by status (active / done / all)**
 
-- navigate: navigate to https://nosecretformula.vercel.app/
-- analyze: ANALYZE(visual, 'Is the task status filter showing the buttons "Active", "Done",
+- navigate: Navigate to https://nosecretformula.vercel.app/ to access the task list app that
+- type: Filled 'Test task' via DOM locator: role=textbox[name='Title']
+- click: Clicked via DOM locator: role=link[name='Done']
+- analyze: ANALYZE(visual, 'Is the "Done" status filter button selected in the task list fi
 - assert: On https://nosecretformula.vercel.app/ — User can filter the task list by status
 
-_Opened https://nosecretformula.vercel.app/.
-Used the status filter controls to switch between Active, Done, and All to filter the task list.
-Confirmed the filter controls (Active, Done, All) were visible above the task list, with All selected at the end._
+_Opened nosecretformula.vercel.app and navigated to the Tasks page.
+Used the status filter controls (Active, Done, All) to switch task list views.
+Ended with the "Done" filter selected, showing the done tasks list (URL reflects status=done)._
 
 **`AC-007` — User can attach a colored label to a task and filter by label**
 
-- navigate: Navigate to https://nosecretformula.vercel.app/ as specified in the objective
-- type: Filled 'Blue label demo task' via DOM locator: role=textbox[name='Title']
-- select: Selected 'blue' via DOM locator: role=combobox[name='Label']
+- navigate: Navigate to https://nosecretformula.vercel.app/ in the current tab
+- type: Filled 'Labeled demo task' via DOM locator: role=textbox[name='Title']
+- select: Selected 'red' via DOM locator: role=combobox[name='Label']
 - click: Clicked via DOM locator: role=button[name='Add task']
-- click: Clicked via DOM locator: role=link[name='blue']
-- analyze: ANALYZE(visual, 'Is there a task listed in the table with a visible colored labe
+- click: Clicked via DOM locator: role=link[name='red']
+- analyze: ANALYZE(visual, 'Is there a task row showing a colored label pill in the Label c
 - assert: On https://nosecretformula.vercel.app/ — User can attach a colored label to a ta
 
 _Opened nosecretformula.vercel.app and went to the Tasks page.
-Created or selected a task and added a blue colored label to it (a blue “blue” pill appeared next to the task).
-Used the label filter controls to filter the task list by the blue label, ending on the filtered results page._
+Created or selected a task and added a red colored label to it (the task shown was “Labeled demo task”).
+Used the label filter controls to show only tasks with the red label, ending on the filtered tasks list._
+
+**`AC-008` — User can view archived tasks on the Archive page and restore them to the active list**
+
+
+_Created a new task titled "Archive demo task" with due date 2026-05-20 on the main task list.
+Archived the "Archive demo task" from its row in the task list.
+Opened the Archive page and confirmed "Archive demo task" appeared there.
+Restored "Archive demo task" from the Archive page.
+Returned to the main task list and confirmed the restored task was visible in the active list (and did not delete or re-archive it)._
 
 </details>
 
@@ -237,16 +245,16 @@ Traceability integrity: **✅ VALID**
 
 | Metric | Value |
 |--------|-------|
-| Total Requirements | 7 |
-| Fully Covered | 7 (100.0%) |
+| Total Requirements | 8 |
+| Fully Covered | 7 (87.5%) |
 | Partially Covered | 0 |
-| Uncovered | 0 |
-| Negative Test Coverage | 14.3% |
+| Uncovered | 1 |
+| Negative Test Coverage | 12.5% |
 | Mobile Coverage | 0.0% |
 | Android Coverage | 0.0% |
-| HyperExecute Coverage | 100.0% |
+| HyperExecute Coverage | 87.5% |
 | Flaky Requirements | 0 |
-| High-Risk Requirements | 0 |
+| High-Risk Requirements | 1 |
 | Missing Scenario Types | 2 |
 
 ### Requirement Coverage Detail
@@ -257,15 +265,16 @@ Traceability integrity: **✅ VALID**
 | `AC-002` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
 | `AC-003` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
 | `AC-004` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-005` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
+| `AC-005` | ❌ NONE | 0 | 0 | 0 | 0 | 🔴 HIGH |
 | `AC-006` | ✅ FULL | 2 | 2 | 0 | 1 | 🟢 LOW |
 | `AC-007` | ✅ FULL | 2 | 2 | 0 | 1 | 🟢 LOW |
+| `AC-008` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
 
 ### Feature Coverage Heatmap
 
 | Feature | Criticality | Total | Covered | Partial | Uncovered |
 |---------|-------------|-------|---------|---------|-----------|
-| GENERAL | 🟡 MEDIUM | 5 | 5 | 0 | 0 |
+| GENERAL | 🟡 MEDIUM | 6 | 5 | 0 | 1 |
 | FILTER | 🟢 LOW | 2 | 2 | 0 | 0 |
 
 ### Missing Scenario Types (Coverage Gaps)
@@ -282,7 +291,7 @@ Traceability integrity: **✅ VALID**
 
 | Gate | Severity | Status | Actual | Threshold |
 |------|----------|--------|--------|-----------|
-| Minimum requirement coverage | 🟡 WARNING | ✅ | 100.0 % | 50.0 % |
+| Minimum requirement coverage | 🟡 WARNING | ✅ | 87.5 % | 50.0 % |
 | Minimum test pass rate | 🔴 CRITICAL | ✅ | 100.0 % | 75.0 % |
 | Flaky test threshold | 🟡 WARNING | ✅ | 0 flaky requirements | 5 flaky requirements |
 | Critical requirements covered | 🟡 WARNING | ✅ | 0 uncovered HIGH-criticality requirements | 0 uncovered HIGH-criticality requirements |
@@ -290,11 +299,11 @@ Traceability integrity: **✅ VALID**
 
 ## Change Impact Analysis
 
-**30 file(s) changed — max impact: 🔴 CRITICAL**
+**17 file(s) changed — max impact: 🔴 CRITICAL**
 
-> FULL regression required — 7 requirement(s) impacted by critical file changes. Run all scenarios.
+> FULL regression required — 8 requirement(s) impacted by critical file changes. Run all scenarios.
 
-**7 requirement(s) impacted:** `AC-001`, `AC-002`, `AC-003`, `AC-004`, `AC-005`, `AC-006`, `AC-007`
+**8 requirement(s) impacted:** `AC-001`, `AC-002`, `AC-003`, `AC-004`, `AC-005`, `AC-006`, `AC-007`, `AC-008`
 
 ## Release Recommendation
 
@@ -302,7 +311,7 @@ Traceability integrity: **✅ VALID**
 
 Approve release because coverage is complete and executed tests passed.
 
-- Requirements covered: **7/7**
+- Requirements covered: **8/8**
 - Browsers tested: **chrome, firefox**
 - Playwright pass rate: **100.0%** (7 passed, 0 failed)
 

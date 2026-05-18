@@ -715,6 +715,15 @@ def post_pipeline() -> None:
     """Run post-pipeline scripts. Exits non-zero if any critical script fails."""
     failed_critical = []
 
+    # write_github_summary.py only persists output when GITHUB_STEP_SUMMARY is
+    # set (CI gives us this for free). Locally it streams to stdout, leaving
+    # any stale reports/pipeline_summary.md behind. Pre-seed the env var so
+    # local runs also produce a fresh pipeline_summary.md.
+    summary_path = Path("reports/pipeline_summary.md")
+    summary_path.unlink(missing_ok=True)
+    if "GITHUB_STEP_SUMMARY" not in os.environ:
+        os.environ["GITHUB_STEP_SUMMARY"] = str(summary_path)
+
     for script in _CRITICAL_SCRIPTS:
         print(f"\n[post-pipeline] running {script} ...")
         result = subprocess.run(
