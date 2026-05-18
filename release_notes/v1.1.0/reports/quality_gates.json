@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-17T21:06:54.737010+00:00",
+  "generated_at": "2026-05-18T04:45:43.605603+00:00",
   "gates_passed": true,
   "critical_failures": 0,
   "warnings": 0,
@@ -16,10 +16,10 @@
       "gate": "Minimum requirement coverage",
       "severity": "WARNING",
       "passed": true,
-      "actual": 100.0,
+      "actual": 87.5,
       "threshold": 50.0,
       "unit": "%",
-      "detail": "7 of 7 requirements fully covered"
+      "detail": "7 of 8 requirements fully covered"
     },
     {
       "gate": "Minimum test pass rate",

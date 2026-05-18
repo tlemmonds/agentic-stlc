@@ -1,0 +1,10 @@
+{
+  "sc_id": "SC-008",
+  "requirement_id": "AC-008",
+  "feature": "general",
+  "description_hash": "4bef08615298",
+  "description": "User can view archived tasks on the Archive page and restore them to the active list",
+  "objective": "On https://nosecretformula.vercel.app/ \u2014 Step 1 (SETUP): create a new task titled 'Archive demo task' with due date 2026-05-20 using the Add a task form. Step 2 (SETUP): on that task's row, click the Archive button to archive it. Step 3 (VERIFY): click the Archive link in the top navigation (or navigate to https://nosecretformula.vercel.app/archive) and confirm 'Archive demo task' is listed there. Step 4 (VERIFY): click the Restore button next to that archived task. Step 5 (VERIFY): return to the main task list (navigate to https://nosecretformula.vercel.app/) and confirm 'Archive demo task' is back in the active list. Stop after the restored task is visible on the active list \u2014 do not delete or re-archive it.",
+  "asset": "sc_008_user_can_view_archived_tasks_on_the_archive_page_and_restore_test.md",
+  "recorded_at": "2026-05-18T04:34:29.443045+00:00"
+}

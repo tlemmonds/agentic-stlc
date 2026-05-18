@@ -1,7 +1,7 @@
 # Scenario Confidence Report
 
-**Total requirements:** 7  
-**HIGH confidence:** 7  
+**Total requirements:** 8  
+**HIGH confidence:** 8  
 **MEDIUM confidence:** 0  
 **LOW confidence:** 0
 

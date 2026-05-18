@@ -12,3 +12,4 @@ User can edit a task's title or due date
 User can delete a task
 User can filter the task list by status (active / done / all)
 User can attach a colored label to a task and filter by label
+User can view archived tasks on the Archive page and restore them to the active list

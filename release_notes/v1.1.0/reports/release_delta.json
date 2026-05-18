@@ -4,9 +4,9 @@
   "from_lock_path": "release_notes\\v1.0.0.lock.json",
   "to_lock_path": "release_notes\\v1.1.0.lock.json",
   "threshold": 0.5,
-  "generated_at": "2026-05-18T03:48:25.624042+00:00",
+  "generated_at": "2026-05-18T04:45:43.442584+00:00",
   "summary": {
-    "ADD": 1,
+    "ADD": 2,
     "EDIT": 1,
     "DELETE": 1,
     "UNMATCHED": 0
@@ -24,6 +24,17 @@
       "prev_text": null
     },
     {
+      "op": "ADD",
+      "item_text": "User can view archived tasks on the Archive page and restore them to the active list",
+      "item_section": "Added",
+      "issue": null,
+      "sc_id": null,
+      "requirement_id": "AC-008",
+      "match_score": 0.0,
+      "rationale": "new requirement; will allocate AC-008 and let Stage 1 record the asset",
+      "prev_text": null
+    },
+    {
       "op": "EDIT",
       "item_text": "User can list all tasks ordered by due date, with overdue tasks pinned to the top",
       "item_section": "Changed",
@@ -36,7 +47,7 @@
     },
     {
       "op": "DELETE",
-      "item_text": "User can delete a task",
+      "item_text": "User can delete a task (items now move to Archive instead)",
       "item_section": "Removed",
       "issue": null,
       "sc_id": "SC-005",

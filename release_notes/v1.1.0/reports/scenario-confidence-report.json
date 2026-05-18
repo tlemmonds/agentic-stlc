@@ -1,23 +1,23 @@
 {
   "summary": {
-    "total_requirements": 7,
+    "total_requirements": 8,
     "by_confidence_level": {
-      "HIGH": 7,
+      "HIGH": 8,
       "MEDIUM": 0,
       "LOW": 0
     },
-    "high_confidence_count": 7,
+    "high_confidence_count": 8,
     "critical_gap_count": 0,
-    "missing_negative_coverage": 7,
-    "missing_edge_case_coverage": 7,
+    "missing_negative_coverage": 8,
+    "missing_edge_case_coverage": 8,
     "kane_failed_requirements": 0,
-    "no_mobile_coverage": 7,
+    "no_mobile_coverage": 8,
     "quality_signals": {
       "confidence_gate_passed": true,
       "high_criticality_low_confidence": [],
-      "missing_negative_coverage_count": 7
+      "missing_negative_coverage_count": 8
     },
-    "analyzed_at": "2026-05-17T21:06:54.183200+00:00"
+    "analyzed_at": "2026-05-18T04:45:43.028293+00:00"
   },
   "records": [
     {
@@ -138,12 +138,12 @@
     },
     {
       "requirement_id": "AC-005",
-      "scenario_id": "SC-005",
-      "scenario_status": "active",
+      "scenario_id": "",
+      "scenario_status": "missing",
       "acceptance_criterion": "User can delete a task",
       "feature": "GENERAL",
       "criticality": "LOW",
-      "kane_status": "passed",
+      "kane_status": "skipped",
       "confidence_level": "HIGH",
       "coverage_dimensions": {
         "happy_path": true,
@@ -215,6 +215,35 @@
       ],
       "recommendations": [
         "Add scenario: 'User can attach a colored label to a task and filter by labe' with invalid/error conditions",
+        "Consider adding mobile viewport test"
+      ],
+      "confidence_reason": "Missing negative/error scenario coverage",
+      "risk_assessment": {
+        "criticality": "LOW",
+        "risk_level": "LOW"
+      }
+    },
+    {
+      "requirement_id": "AC-008",
+      "scenario_id": "SC-008",
+      "scenario_status": "active",
+      "acceptance_criterion": "User can view archived tasks on the Archive page and restore them to the active list",
+      "feature": "GENERAL",
+      "criticality": "LOW",
+      "kane_status": "passed",
+      "confidence_level": "HIGH",
+      "coverage_dimensions": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "mobile": false,
+        "real_body": false
+      },
+      "coverage_gaps": [
+        "Missing negative/error scenario coverage"
+      ],
+      "recommendations": [
+        "Add scenario: 'User can view archived tasks on the Archive page and restore' with invalid/error conditions",
         "Consider adding mobile viewport test"
       ],
       "confidence_reason": "Missing negative/error scenario coverage",

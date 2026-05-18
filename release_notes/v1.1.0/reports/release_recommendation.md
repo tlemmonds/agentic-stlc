@@ -3,7 +3,7 @@
 **Verdict:** GREEN
 
 ## Summary
-- Requirements covered: 7/7
+- Requirements covered: 8/8
 - Scenarios executed: 7
 - Pass rate: 100.0% (7 passed, 0 failed or skipped)
 - Overall health: healthy

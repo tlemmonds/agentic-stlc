@@ -184,10 +184,19 @@ def sync_scenarios(requirements: list, existing: list) -> list:
         else:
             sc_id  = existing_sc["id"]
             tc_id  = existing_sc.get("test_case_id", sc_id.replace("SC-", "TC-"))
-            status = (
-                "updated" if existing_sc.get("source_description") != req["description"]
-                else "active"
-            )
+            # "deprecated" is a tombstone — once release_diff marks an
+            # AC as removed (e.g. v1.1.0's "User can delete a task"), the
+            # status must survive even though the AC line is still present
+            # in taskflow.txt. Otherwise Stage 4 re-includes the test, HE
+            # runs it against an AUT that no longer supports the feature,
+            # and the verdict flips from GREEN to YELLOW on every run.
+            if existing_sc.get("status") == "deprecated":
+                status = "deprecated"
+            else:
+                status = (
+                    "updated" if existing_sc.get("source_description") != req["description"]
+                    else "active"
+                )
 
         title = req.get("kane_one_liner") or req.get("title", req["id"])
         # Fix None-fallthrough: existing_sc may carry function_name=None from

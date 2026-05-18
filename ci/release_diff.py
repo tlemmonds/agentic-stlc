@@ -66,10 +66,16 @@ _STOPWORDS = {
     "to", "user", "users", "want", "wants", "with", "see", "sees",
 }
 _TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]+")
+# Parenthetical phrases in release-notes prose are author commentary, not
+# scenario-defining tokens. "User can delete a task (items now move to Archive
+# instead)" should still match SC-005 "User can delete a task" — without this,
+# the parenthetical's extra tokens dilute the Jaccard score below threshold.
+_PARENS_RE = re.compile(r"\([^)]*\)")
 
 
 def _tokens(text: str) -> set[str]:
-    return {t.lower() for t in _TOKEN_RE.findall(text or "") if t.lower() not in _STOPWORDS and len(t) > 2}
+    stripped = _PARENS_RE.sub(" ", text or "")
+    return {t.lower() for t in _TOKEN_RE.findall(stripped) if t.lower() not in _STOPWORDS and len(t) > 2}
 
 
 def jaccard(a: str, b: str) -> float:

@@ -1,9 +1,9 @@
 {
   "release": "v1.1.0",
-  "released_at": "2026-05-16",
+  "released_at": "2026-05-18",
   "from_release": "v1.0.0",
   "delta_summary": {
-    "ADD": 1,
+    "ADD": 2,
     "EDIT": 1,
     "DELETE": 1,
     "UNMATCHED": 0
@@ -53,7 +53,7 @@
       "last_verified": "2026-05-16",
       "description": "User can list all tasks ordered by due date, with overdue tasks pinned to the top",
       "last_changed_in_release": "v1.1.0",
-      "last_changed_at": "2026-05-16"
+      "last_changed_at": "2026-05-18"
     },
     {
       "id": "SC-003",
@@ -122,7 +122,7 @@
       "kane_url": "https://nosecretformula.vercel.app/",
       "last_verified": "2026-05-16",
       "deprecated_in_release": "v1.1.0",
-      "deprecated_at": "2026-05-16"
+      "deprecated_at": "2026-05-18"
     },
     {
       "id": "SC-006",
@@ -151,7 +151,20 @@
       "status": "new",
       "kane_objective": "User can attach a colored label to a task and filter by label",
       "added_in_release": "v1.1.0",
-      "added_at": "2026-05-16",
+      "added_at": "2026-05-18",
+      "issue": null
+    },
+    {
+      "id": "SC-008",
+      "test_case_id": "TC-008",
+      "requirement_id": "AC-008",
+      "title": "User can view archived tasks on the Archive page and restore them to the active ",
+      "description": "User can view archived tasks on the Archive page and restore them to the active list",
+      "feature": "general",
+      "status": "new",
+      "kane_objective": "User can view archived tasks on the Archive page and restore them to the active list",
+      "added_in_release": "v1.1.0",
+      "added_at": "2026-05-18",
       "issue": null
     }
   ]

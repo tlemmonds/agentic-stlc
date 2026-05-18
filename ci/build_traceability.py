@@ -269,6 +269,32 @@ def main():
         tc_id = scenario.get("test_case_id", "n/a") if scenario else "n/a"
         fn_name = scenario.get("function_name", f"test_{sc_id.lower().replace('-','_')}") if scenario else ""
 
+        # Deprecated tombstone: render the row for visibility (so the matrix
+        # documents that v1.1.0 explicitly removed delete) but exclude from
+        # executed/passed/untested counts — otherwise the missing HE result
+        # flips the verdict to RED on every run.
+        if scenario and scenario.get("status") == "deprecated":
+            rows.append({
+                "requirement_id": req["id"],
+                "acceptance_criterion": req.get("description", ""),
+                "scenario_id": sc_id,
+                "test_case_id": tc_id,
+                "function_name": fn_name,
+                "feature": scenario.get("feature", "general"),
+                "criticality": "DEPRECATED",
+                "coverage_categories": [],
+                "kane_ai_result": "skipped",
+                "kane_session_link": "",
+                "kane_one_liner": f"deprecated in {scenario.get('deprecated_in_release', 'prior release')}",
+                "kane_summary": "",
+                "kane_steps": [],
+                "playwright_status": "deprecated",
+                "playwright_per_browser": {},
+                "session_link": "",
+                "overall": "deprecated",
+            })
+            continue
+
         # ── Playwright results (multi-browser) ───────────────────────────────
         browser_records = normalized_by_sc.get(sc_id, [])
 

@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-05-17T21:06:54.402406+00:00",
+  "generated_at": "2026-05-18T04:45:43.258552+00:00",
   "summary": {
-    "total_requirements": 7,
+    "total_requirements": 8,
     "covered_full": 7,
     "covered_partial": 0,
-    "uncovered": 0,
-    "coverage_pct": 100.0,
-    "any_coverage_pct": 100.0,
-    "negative_coverage_pct": 14.3,
-    "he_coverage_pct": 100.0,
+    "uncovered": 1,
+    "coverage_pct": 87.5,
+    "any_coverage_pct": 87.5,
+    "negative_coverage_pct": 12.5,
+    "he_coverage_pct": 87.5,
     "mobile_coverage_pct": 0.0,
     "android_coverage_pct": 0.0,
     "flaky_count": 0,
-    "high_risk_count": 0,
+    "high_risk_count": 1,
     "medium_risk_count": 0,
     "missing_scenario_types": 2
   },
@@ -186,39 +186,34 @@
       "description": "User can delete a task",
       "feature": "GENERAL",
       "criticality": "MEDIUM",
-      "kane_status": "passed",
-      "coverage_status": "FULL",
-      "covered_scenarios": [
-        "SC-005"
-      ],
+      "kane_status": "skipped",
+      "coverage_status": "NONE",
+      "covered_scenarios": [],
       "missing_scenarios": [],
       "execution_status": {
-        "total": 2,
-        "passed": 2,
+        "total": 0,
+        "passed": 0,
         "failed": 0,
         "skipped": 0,
         "data_unavailable": 0,
         "flaky": 0
       },
       "coverage_categories": {
-        "happy_path": true,
+        "happy_path": false,
         "negative": true,
         "edge_case": false,
         "security": false,
         "mobile": false,
         "android": false,
-        "he_executed": true,
-        "regression": true,
+        "he_executed": false,
+        "regression": false,
         "api_integration": false,
         "accessibility": false
       },
-      "browsers_tested": [
-        "chrome",
-        "firefox"
-      ],
-      "functional_coverage_pct": 100.0,
+      "browsers_tested": [],
+      "functional_coverage_pct": 0.0,
       "negative_coverage_pct": 100.0,
-      "risk_level": "LOW",
+      "risk_level": "HIGH",
       "flaky": false,
       "retry_count": 0
     },
@@ -313,16 +308,57 @@
       "risk_level": "LOW",
       "flaky": false,
       "retry_count": 0
+    },
+    {
+      "requirement_id": "AC-008",
+      "description": "User can view archived tasks on the Archive page and restore them to the active list",
+      "feature": "GENERAL",
+      "criticality": "MEDIUM",
+      "kane_status": "passed",
+      "coverage_status": "FULL",
+      "covered_scenarios": [
+        "SC-008"
+      ],
+      "missing_scenarios": [],
+      "execution_status": {
+        "total": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "data_unavailable": 0,
+        "flaky": 0
+      },
+      "coverage_categories": {
+        "happy_path": true,
+        "negative": false,
+        "edge_case": false,
+        "security": false,
+        "mobile": false,
+        "android": false,
+        "he_executed": true,
+        "regression": true,
+        "api_integration": false,
+        "accessibility": false
+      },
+      "browsers_tested": [
+        "chrome",
+        "firefox"
+      ],
+      "functional_coverage_pct": 100.0,
+      "negative_coverage_pct": 100.0,
+      "risk_level": "LOW",
+      "flaky": false,
+      "retry_count": 0
     }
   ],
   "feature_rollup": [
     {
       "feature": "GENERAL",
       "criticality": "MEDIUM",
-      "total": 5,
+      "total": 6,
       "covered": 5,
       "partial": 0,
-      "none": 0,
+      "none": 1,
       "failed": 0,
       "flaky": 0
     },

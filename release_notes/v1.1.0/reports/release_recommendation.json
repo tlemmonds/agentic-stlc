@@ -1,8 +1,8 @@
 {
   "verdict": "GREEN",
   "pass_rate": 100.0,
-  "requirements_covered": 7,
-  "requirements_total": 7,
+  "requirements_covered": 8,
+  "requirements_total": 8,
   "executed": 7,
   "passed": 7,
   "failing_scenarios": [],
