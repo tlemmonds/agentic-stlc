@@ -412,7 +412,16 @@ def main():
         emit(f"| HyperExecute Job | `{he_job_id}` | — | [Open in LambdaTest ↗]({he_job_link}) |")
     else:
         emit(f"| HyperExecute Job ID | `{he_job_id or 'n/a'}` | — | job not submitted or ID extraction failed |")
-    emit(f"| Job Status | `{he_status_raw or 'not returned'}` | **{he_status}** | source: {he_parser_status} |")
+    # Mirror the stage-5 badge reconciliation here: when task pass rate is
+    # 100% and the parser fetched the status cleanly, the badge promotes the
+    # job to PASSED even though HE's job-level field still says "failed".
+    # The detail row should agree with the badge — otherwise readers see
+    # "Stage 5 ✅ PASSED" up top and "Job Status FAILED" below and assume
+    # one of them is wrong.
+    reconciled_note = ""
+    if he_stage_status != he_status and he_stage_status == "PASSED":
+        reconciled_note = " *(reconciled: all tasks passed)*"
+    emit(f"| Job Status | `{he_status_raw or 'not returned'}` | **{he_stage_status}**{reconciled_note} | source: {he_parser_status} |")
     emit(f"| Parser Status | `{he_parser_status}` | — | how status was resolved |")
     emit(f"| Browsers | — | — | {', '.join(all_browsers) if all_browsers else 'chrome (default)'} |")
     emit(f"| Total tasks | {he_total_count} | — | submitted to HyperExecute |")

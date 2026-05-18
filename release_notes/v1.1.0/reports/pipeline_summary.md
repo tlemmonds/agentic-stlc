@@ -90,7 +90,7 @@ Run type: **full** · **7** scenario(s) submitted to HyperExecute
 | Metric | Raw Value | Normalized | Evidence |
 |--------|-----------|------------|----------|
 | HyperExecute Job | `5b3578b5-b68a-4488-88b3-08fb68055d12` | — | [Open in LambdaTest ↗](https://hyperexecute.lambdatest.com/hyperexecute/task?jobId=5b3578b5-b68a-4488-88b3-08fb68055d12) |
-| Job Status | `failed` | **FAILED** | source: api_ok |
+| Job Status | `failed` | **PASSED** *(reconciled: all tasks passed)* | source: api_ok |
 | Parser Status | `api_ok` | — | how status was resolved |
 | Browsers | — | — | chrome, firefox |
 | Total tasks | 14 | — | submitted to HyperExecute |
