@@ -26,11 +26,11 @@
 | 🔴 DELETE    | 1 |
 | ⚠️ Unmatched | 0 |
 
-| Op | Scenario | Requirement | Issue | Score | Item |
+| Op | Scenario | Requirement | Issue | Score | Change |
 |---|---|---|---|---|---|
-| 🟢 ADD | `—` | `AC-007` | — | 0.00 | User can attach a colored label to a task and filter by label |
-| 🟡 EDIT | `SC-002` | `AC-002` | — | 0.67 | User can list all tasks ordered by due date, with overdue tasks pinned to the top |
-| 🔴 DELETE | `SC-005` | `AC-005` | — | 1.00 | User can delete a task |
+| 🟢 ADD | `—` | `AC-007` | — | 0.00 | **new:** User can attach a colored label to a task and filter by label |
+| 🟡 EDIT | `SC-002` | `AC-002` | — | 0.67 | **was:** User can list all tasks ordered by due date<br>**now:** User can list all tasks ordered by due date, with overdue tasks pinned to the top |
+| 🔴 DELETE | `SC-005` | `AC-005` | — | 1.00 | **removed:** User can delete a task |
 
 > ℹ️ Preview only. Run with `apply_release_delta=true` to commit operations to `scenarios.json` and freeze the new release lock.
 

@@ -90,6 +90,7 @@ class Operation:
     requirement_id: str | None
     match_score: float    # 0.0 for ADD; jaccard for EDIT/DELETE
     rationale: str
+    prev_text: str | None = None  # the previous-release description; populated for EDIT/DELETE
 
     def to_dict(self) -> dict:
         return {
@@ -101,6 +102,7 @@ class Operation:
             "requirement_id": self.requirement_id,
             "match_score": round(self.match_score, 3),
             "rationale": self.rationale,
+            "prev_text": self.prev_text,
         }
 
 
@@ -260,11 +262,16 @@ def diff(
                 })
                 continue
             edit_targets.remove(best)
+            # Capture the v(prev) text so the Stage 0 summary can render
+            # before → after for the EDIT op. Both schemas seen in locks:
+            # `description` (current) and `source_description` (legacy).
+            prev_text = best.get("description") or best.get("source_description")
             result.operations.append(Operation(
                 op="EDIT", item_text=item.text, item_section=item.section,
                 issue=item.issue, sc_id=best.get("id"), requirement_id=best.get("requirement_id"),
                 match_score=score,
                 rationale=f"matched on description similarity ({score:.2f}); EDIT will rewrite description and invalidate description_hash so Stage 1 re-records the asset",
+                prev_text=prev_text,
             ))
         elif item.section == "Removed":
             best, score = _best_match(item.text, edit_targets, threshold)
@@ -276,11 +283,13 @@ def diff(
                 })
                 continue
             edit_targets.remove(best)
+            prev_text = best.get("description") or best.get("source_description")
             result.operations.append(Operation(
                 op="DELETE", item_text=item.text, item_section=item.section,
                 issue=item.issue, sc_id=best.get("id"), requirement_id=best.get("requirement_id"),
                 match_score=score,
                 rationale=f"matched on description similarity ({score:.2f}); will mark scenario deprecated (asset preserved)",
+                prev_text=prev_text,
             ))
         # Fixed / Deprecated / Security: noted in markdown but no scenario op.
     return result

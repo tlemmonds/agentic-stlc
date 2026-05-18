@@ -236,13 +236,26 @@ def main():
         emit(f"| ⚠️ Unmatched | {summary_0.get('UNMATCHED', 0)} |")
         emit("")
         if ops:
-            emit("| Op | Scenario | Requirement | Issue | Score | Item |")
+            emit("| Op | Scenario | Requirement | Issue | Score | Change |")
             emit("|---|---|---|---|---|---|")
             for op in ops:
+                op_type = op.get("op", "")
+                item_text = (op.get("item_text") or "").replace("|", "\\|")
+                prev_text = (op.get("prev_text") or "").replace("|", "\\|")
+                # Build the "Change" cell with before → after when applicable.
+                # Use <br> for in-cell line breaks (GitHub-flavored markdown).
+                if op_type == "EDIT" and prev_text:
+                    change_cell = f"**was:** {prev_text}<br>**now:** {item_text}"
+                elif op_type == "DELETE" and prev_text:
+                    change_cell = f"**removed:** {prev_text}"
+                elif op_type == "ADD":
+                    change_cell = f"**new:** {item_text}"
+                else:
+                    change_cell = item_text
                 emit(
-                    f"| {op_icon.get(op['op'], op['op'])} | `{op.get('sc_id') or '—'}` | "
+                    f"| {op_icon.get(op_type, op_type)} | `{op.get('sc_id') or '—'}` | "
                     f"`{op.get('requirement_id') or '—'}` | {op.get('issue') or '—'} | "
-                    f"{op.get('match_score', 0):.2f} | {op.get('item_text', '')} |"
+                    f"{op.get('match_score', 0):.2f} | {change_cell} |"
                 )
             emit("")
         if unmatched:
