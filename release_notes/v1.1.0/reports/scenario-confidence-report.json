@@ -2,22 +2,23 @@
   "summary": {
     "total_requirements": 8,
     "by_confidence_level": {
-      "HIGH": 8,
+      "HIGH": 7,
       "MEDIUM": 0,
-      "LOW": 0
+      "LOW": 0,
+      "DEPRECATED": 1
     },
-    "high_confidence_count": 8,
+    "high_confidence_count": 7,
     "critical_gap_count": 0,
-    "missing_negative_coverage": 8,
+    "missing_negative_coverage": 7,
     "missing_edge_case_coverage": 8,
     "kane_failed_requirements": 0,
     "no_mobile_coverage": 8,
     "quality_signals": {
       "confidence_gate_passed": true,
       "high_criticality_low_confidence": [],
-      "missing_negative_coverage_count": 8
+      "missing_negative_coverage_count": 7
     },
-    "analyzed_at": "2026-05-18T04:45:43.028293+00:00"
+    "analyzed_at": "2026-05-18T05:06:51.954775+00:00"
   },
   "records": [
     {
@@ -138,32 +139,19 @@
     },
     {
       "requirement_id": "AC-005",
-      "scenario_id": "",
-      "scenario_status": "missing",
-      "acceptance_criterion": "User can delete a task",
+      "scenario_id": "SC-005",
+      "function_name": "test_sc_005_user_can_delete_a_task",
       "feature": "GENERAL",
-      "criticality": "LOW",
       "kane_status": "skipped",
-      "confidence_level": "HIGH",
-      "coverage_dimensions": {
-        "happy_path": true,
-        "negative": false,
-        "edge_case": false,
-        "mobile": false,
-        "real_body": false
-      },
-      "coverage_gaps": [
-        "Missing negative/error scenario coverage"
-      ],
-      "recommendations": [
-        "Add scenario: 'User can delete a task' with invalid/error conditions",
-        "Consider adding mobile viewport test"
-      ],
-      "confidence_reason": "Missing negative/error scenario coverage",
+      "confidence_level": "DEPRECATED",
+      "coverage_dimensions": {},
+      "coverage_gaps": [],
+      "confidence_reason": "Tombstoned in v1.1.0",
       "risk_assessment": {
-        "criticality": "LOW",
-        "risk_level": "LOW"
-      }
+        "criticality": "DEPRECATED",
+        "risk_level": "DEPRECATED"
+      },
+      "deprecated_in_release": "v1.1.0"
     },
     {
       "requirement_id": "AC-006",

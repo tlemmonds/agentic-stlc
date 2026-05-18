@@ -166,7 +166,7 @@
       "coverage_categories": [],
       "kane_ai_result": "skipped",
       "kane_session_link": "",
-      "kane_one_liner": "deprecated in prior release",
+      "kane_one_liner": "removed in v1.1.0",
       "kane_summary": "",
       "kane_steps": [],
       "playwright_status": "deprecated",

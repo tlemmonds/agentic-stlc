@@ -59,7 +59,7 @@ Total: **8** — 7 active, 0 new, 0 updated, 1 deprecated
 | Level | Count | Meaning |
 |---|---|---|
 | 🟢 VERY_HIGH    | 0    | All key dimensions covered; minor gaps acceptable |
-| 🟡 HIGH         | 8         | Core flow validated; some coverage classes missing |
+| 🟡 HIGH         | 7         | Core flow validated; some coverage classes missing |
 | 🟠 MEDIUM       | 0       | Happy path present but important gaps exist |
 | 🔴 LOW          | 0          | Significant gaps — Kane failure or no negative tests on critical feature |
 | 🚨 CRITICAL_GAP | 0 | No scenario mapped — zero automated coverage |
@@ -72,7 +72,7 @@ Total: **8** — 7 active, 0 new, 0 updated, 1 deprecated
 | `AC-002` | `SC-002` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can list all tasks ordered by due date, … |
 | `AC-003` | `SC-003` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can mark a task as complete' with invali… |
 | `AC-004` | `SC-004` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can edit a task's title or due date' wit… |
-| `AC-005` | `` | GENERAL | LOW | 🟡 HIGH | skipped |  | Add scenario: 'User can delete a task' with invalid/error co… |
+| `AC-005` | `SC-005` | — | ⚰️ DEPRECATED | ⚰️ DEPRECATED | ⏭️ skipped | — | removed in v1.1.0 |
 | `AC-006` | `SC-006` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can filter the task list by status (acti… |
 | `AC-007` | `SC-007` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can attach a colored label to a task and… |
 | `AC-008` | `SC-008` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can view archived tasks on the Archive p… |
@@ -134,7 +134,7 @@ Run type: **full** · **7** scenario(s) submitted to HyperExecute
 | `AC-002` | User can list all tasks ordered by due date, with overd… | `SC-002` | `TC-002` | passed | — | created two tasks on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=G9LZE-OBFTK-T3HT9-1QHKL) | ✅ passed |
 | `AC-003` | User can mark a task as complete | `SC-003` | `TC-003` | passed | — | marked a task as complete on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=GLD5I-GWKH1-LPYKA-5MZLU) | ✅ passed |
 | `AC-004` | User can edit a task's title or due date | `SC-004` | `TC-004` | passed | — | opened a task edit form on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=A0CVC-Q2TAC-MWXIB-XVWQG) | ✅ passed |
-| `AC-005` | User can delete a task | `SC-005` | `TC-005` | skipped | — | deprecated in prior release | ⚠️ — | ⚠️ — | deprecated | — | 🚫 deprecated |
+| `AC-005` | User can delete a task | `SC-005` | `TC-005` | skipped | — | removed in v1.1.0 | ⚠️ — | ⚠️ — | deprecated | — | 🚫 deprecated |
 | `AC-006` | User can filter the task list by status (active / done … | `SC-006` | `TC-006` | passed | — | filtered tasks by status on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=EVGKD-TTDF5-MOU1C-V2SEX) | ✅ passed |
 | `AC-007` | User can attach a colored label to a task and filter by… | `SC-007` | `TC-007` | passed | — | filtered tasks by a red label on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=CK8GS-VLPBJ-DDNSD-ZUPWT) | ✅ passed |
 | `AC-008` | User can view archived tasks on the Archive page and re… | `SC-008` | `TC-008` | passed | — | archived and restored a task on nosecretformula.vercel.app | ✅ passed | ✅ passed | passed | [session](https://automation.lambdatest.com/test?testID=M2DRG-FQMAI-EOLK6-HPUVK) | ✅ passed |
@@ -248,13 +248,14 @@ Traceability integrity: **✅ VALID**
 | Total Requirements | 8 |
 | Fully Covered | 7 (87.5%) |
 | Partially Covered | 0 |
-| Uncovered | 1 |
-| Negative Test Coverage | 12.5% |
+| Uncovered | 0 |
+| ⚰️ Deprecated (tombstone) | 1 |
+| Negative Test Coverage | 0.0% |
 | Mobile Coverage | 0.0% |
 | Android Coverage | 0.0% |
 | HyperExecute Coverage | 87.5% |
 | Flaky Requirements | 0 |
-| High-Risk Requirements | 1 |
+| High-Risk Requirements | 0 |
 | Missing Scenario Types | 2 |
 
 ### Requirement Coverage Detail
@@ -265,7 +266,7 @@ Traceability integrity: **✅ VALID**
 | `AC-002` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
 | `AC-003` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
 | `AC-004` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-005` | ❌ NONE | 0 | 0 | 0 | 0 | 🔴 HIGH |
+| `AC-005` | ⚰️ DEPRECATED | — | — | — | — | — *(removed in v1.1.0)* |
 | `AC-006` | ✅ FULL | 2 | 2 | 0 | 1 | 🟢 LOW |
 | `AC-007` | ✅ FULL | 2 | 2 | 0 | 1 | 🟢 LOW |
 | `AC-008` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
@@ -274,7 +275,7 @@ Traceability integrity: **✅ VALID**
 
 | Feature | Criticality | Total | Covered | Partial | Uncovered |
 |---------|-------------|-------|---------|---------|-----------|
-| GENERAL | 🟡 MEDIUM | 6 | 5 | 0 | 1 |
+| GENERAL | 🟡 MEDIUM | 5 | 5 | 0 | 0 |
 | FILTER | 🟢 LOW | 2 | 2 | 0 | 0 |
 
 ### Missing Scenario Types (Coverage Gaps)

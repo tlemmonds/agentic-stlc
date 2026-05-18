@@ -1,6 +1,6 @@
 # Requirement Coverage Analysis Report
 
-_Generated: 2026-05-18 04:45 UTC_
+_Generated: 2026-05-18 05:06 UTC_
 
 ## Coverage Summary
 
@@ -9,20 +9,20 @@ _Generated: 2026-05-18 04:45 UTC_
 | Total Requirements | 8 |
 | Fully Covered | 7 (87.5%) |
 | Partially Covered | 0 |
-| Uncovered | 1 |
-| Negative Test Coverage | 12.5% |
+| Uncovered | 0 |
+| Negative Test Coverage | 0.0% |
 | Mobile Coverage | 0.0% |
 | Android Coverage | 0.0% |
 | HyperExecute Coverage | 87.5% |
 | Flaky Requirements | 0 |
-| High-Risk Requirements | 1 |
+| High-Risk Requirements | 0 |
 | Missing Scenario Types | 2 |
 
 ## Feature Coverage Heatmap
 
 | Feature | Criticality | Total | Covered | Partial | Uncovered | Failed | Flaky |
 |---------|-------------|-------|---------|---------|-----------|--------|-------|
-| GENERAL | MEDIUM | 6 | 5 | 0 | 1 | 0 | 0 |
+| GENERAL | MEDIUM | 5 | 5 | 0 | 0 | 0 | 0 |
 | FILTER | LOW | 2 | 2 | 0 | 0 | 0 | 0 |
 
 ## Requirement Coverage Detail
@@ -33,7 +33,7 @@ _Generated: 2026-05-18 04:45 UTC_
 | `AC-002` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-003` | FULL | 2 | 2 | 0 | 0 | LOW |
 | `AC-004` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-005` | NONE | 0 | 0 | 0 | 0 | HIGH |
+| `AC-005` | DEPRECATED | 0 | 0 | 0 | 0 | DEPRECATED |
 | `AC-006` | FULL | 2 | 2 | 0 | 1 | LOW |
 | `AC-007` | FULL | 2 | 2 | 0 | 1 | LOW |
 | `AC-008` | FULL | 2 | 2 | 0 | 0 | LOW |
@@ -112,21 +112,11 @@ _Generated: 2026-05-18 04:45 UTC_
 
 **Covered by:** SC-004
 
-### AC-005 — GENERAL
+### AC-005 — DEPRECATED
 
 > User can delete a task
 
-- **Coverage Status:** NONE  |  **Risk:** HIGH  |  **Criticality:** MEDIUM  |  **Kane:** skipped
-- **Functional Coverage:** 0.0%  |  **Negative Coverage:** 100.0%
-- **Browsers Tested:** none
-- **Flaky:** no
-
-**Coverage Categories:**
-| Happy Path | Negative | Edge Case | Mobile | Android | HyperExecute | Regression |
-|------------|----------|-----------|--------|---------|--------------|------------|
-| ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-
-**Execution:** 0 total | 0 passed | 0 failed | 0 flaky
+_Tombstoned in **v1.1.0**. Scenario kept in catalog for history; intentionally not executed._
 
 ### AC-006 — FILTER
 

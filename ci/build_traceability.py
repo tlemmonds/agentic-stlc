@@ -285,7 +285,7 @@ def main():
                 "coverage_categories": [],
                 "kane_ai_result": "skipped",
                 "kane_session_link": "",
-                "kane_one_liner": f"deprecated in {scenario.get('deprecated_in_release', 'prior release')}",
+                "kane_one_liner": f"removed in {scenario.get('deprecated_in_release', 'prior release')}",
                 "kane_summary": "",
                 "kane_steps": [],
                 "playwright_status": "deprecated",

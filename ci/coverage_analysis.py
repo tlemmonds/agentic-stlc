@@ -240,8 +240,11 @@ def analyze(
 
     # Build lookup tables
     scenarios_by_req: dict[str, list[dict]] = {}
+    deprecated_by_req: dict[str, list[dict]] = {}
     for sc in scenarios:
-        if sc.get("status") != "deprecated":
+        if sc.get("status") == "deprecated":
+            deprecated_by_req.setdefault(sc.get("requirement_id", ""), []).append(sc)
+        else:
             scenarios_by_req.setdefault(sc.get("requirement_id", ""), []).append(sc)
 
     results_by_sc: dict[str, list[dict]] = {}
@@ -264,6 +267,37 @@ def analyze(
 
         mapped_scenarios = scenarios_by_req.get(req_id, [])
         sc_ids = [s["id"] for s in mapped_scenarios]
+
+        # Deprecated tombstone: the AC line is still in taskflow.txt but its
+        # only scenario was tombstoned by a release_diff DELETE op (v1.1.0
+        # removed "User can delete a task"). Render as DEPRECATED, not NONE
+        # — otherwise it shows up as "🔴 HIGH risk / no coverage", which is
+        # misleading: the absence is intentional, not a gap to fix.
+        if not mapped_scenarios and deprecated_by_req.get(req_id):
+            dep = deprecated_by_req[req_id][0]
+            coverage_records.append({
+                "requirement_id":       req_id,
+                "description":          description,
+                "feature":              feature,
+                "criticality":          "DEPRECATED",
+                "kane_status":          kane_status,
+                "coverage_status":      "DEPRECATED",
+                "covered_scenarios":    [dep["id"]],
+                "missing_scenarios":    [],
+                "execution_status": {
+                    "total": 0, "passed": 0, "failed": 0, "skipped": 0,
+                    "data_unavailable": 0, "flaky": 0,
+                },
+                "coverage_categories":  {},
+                "browsers_tested":      [],
+                "functional_coverage_pct": 0.0,
+                "negative_coverage_pct":   0.0,
+                "risk_level":           "DEPRECATED",
+                "flaky":                False,
+                "retry_count":          0,
+                "deprecated_in_release": dep.get("deprecated_in_release", "prior release"),
+            })
+            continue
 
         # All execution results for this requirement's scenarios
         all_results: list[dict] = []
@@ -404,8 +438,10 @@ def analyze(
     def _pct(n: int) -> float:
         return round(n / total * 100, 1) if total else 0.0
 
+    deprecated_count = sum(1 for r in coverage_records if r["coverage_status"] == "DEPRECATED")
     summary = {
         "total_requirements":   total,
+        "deprecated":           deprecated_count,
         "covered_full":         cnt_full,
         "covered_partial":      cnt_partial,
         "uncovered":            cnt_none,
@@ -424,6 +460,10 @@ def analyze(
     # Feature rollup
     feature_rollup: dict[str, dict] = {}
     for r in coverage_records:
+        # Deprecated tombstones are not a feature gap — exclude from rollup
+        # so the "Uncovered" column doesn't inflate from intentional removals.
+        if r["coverage_status"] == "DEPRECATED":
+            continue
         feat = r["feature"]
         if feat not in feature_rollup:
             feature_rollup[feat] = {
@@ -528,6 +568,19 @@ def _write_markdown(records: list, summary: dict, feature_rollup: dict) -> None:
 
     lines += ["", "## Per-Requirement Detail", ""]
     for r in records:
+        # Deprecated tombstone: render a short notice instead of the full
+        # category/execution tables (which would all be N/A and confusing).
+        if r["coverage_status"] == "DEPRECATED":
+            dep_in = r.get("deprecated_in_release", "prior release")
+            lines += [
+                f"### {r['requirement_id']} — DEPRECATED",
+                "",
+                f"> {r['description']}",
+                "",
+                f"_Tombstoned in **{dep_in}**. Scenario kept in catalog for history; intentionally not executed._",
+                "",
+            ]
+            continue
         cats = r["coverage_categories"]
         es   = r["execution_status"]
         yes  = lambda v: "✅" if v else "❌"

@@ -94,7 +94,9 @@
     "expected_result": "skipped: scenario marked deprecated",
     "kane_url": "https://nosecretformula.vercel.app/",
     "kane_objective": "On https://nosecretformula.vercel.app/ \u2014 User can delete a task",
-    "last_verified": "2026-05-18"
+    "last_verified": "2026-05-18",
+    "deprecated_in_release": "v1.1.0",
+    "deprecated_at": "2026-05-18"
   },
   {
     "id": "SC-006",

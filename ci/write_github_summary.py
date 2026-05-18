@@ -353,11 +353,20 @@ def main():
                 "MEDIUM":    "🟠 MEDIUM",
                 "LOW":       "🔴 LOW",
                 "CRITICAL_GAP": "🚨 CRITICAL_GAP",
+                "DEPRECATED": "⚰️ DEPRECATED",
             }
             kane_icon = {"passed": "✅ passed", "failed": "❌ failed"}
             for r in records:
                 lvl   = r.get("confidence_level", "")
                 kane  = r.get("kane_status", "")
+                if lvl == "DEPRECATED":
+                    dep_in = r.get("deprecated_in_release", "prior release")
+                    emit(
+                        f"| `{r.get('requirement_id', '')}` | `{r.get('scenario_id', '')}` | "
+                        f"— | ⚰️ DEPRECATED | ⚰️ DEPRECATED | ⏭️ skipped | "
+                        f"— | removed in {dep_in} |"
+                    )
+                    continue
                 gaps  = r.get("gaps", []) or []
                 top_gap = (gaps[0] if gaps else "")[:60]
                 recs  = r.get("recommendations", []) or []
@@ -594,6 +603,8 @@ def main():
              f"({cov_sum.get('coverage_pct', 0)}%) |")
         emit(f"| Partially Covered | {cov_sum.get('covered_partial', 0)} |")
         emit(f"| Uncovered | {cov_sum.get('uncovered', 0)} |")
+        if cov_sum.get('deprecated', 0):
+            emit(f"| ⚰️ Deprecated (tombstone) | {cov_sum.get('deprecated', 0)} |")
         emit(f"| Negative Test Coverage | {cov_sum.get('negative_coverage_pct', 0)}% |")
         emit(f"| Mobile Coverage | {cov_sum.get('mobile_coverage_pct', 0)}% |")
         emit(f"| Android Coverage | {cov_sum.get('android_coverage_pct', 0)}% |")
@@ -610,12 +621,24 @@ def main():
         emit("|-------------|----------|-------|------|------|---------|------|")
         for r in cov_reqs:
             es = r.get("execution_status", {})
-            cov_icon = {"FULL": "✅", "PARTIAL": "🟡", "NONE": "❌"}.get(r.get("coverage_status", "NONE"), "❓")
-            risk_icon = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}.get(r.get("risk_level", ""), "⚪")
+            cov_status = r.get("coverage_status", "NONE")
+            risk_level = r.get("risk_level", "")
+            # DEPRECATED tombstones are intentional, not gaps — render them
+            # as a distinct row so readers don't read "no coverage / HIGH
+            # risk" and assume a real coverage hole.
+            if cov_status == "DEPRECATED":
+                dep_in = r.get("deprecated_in_release", "prior release")
+                emit(
+                    f"| `{r.get('requirement_id', '?')}` | ⚰️ DEPRECATED "
+                    f"| — | — | — | — | — *(removed in {dep_in})* |"
+                )
+                continue
+            cov_icon = {"FULL": "✅", "PARTIAL": "🟡", "NONE": "❌"}.get(cov_status, "❓")
+            risk_icon = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}.get(risk_level, "⚪")
             emit(
-                f"| `{r.get('requirement_id', '?')}` | {cov_icon} {r.get('coverage_status', 'NONE')} "
+                f"| `{r.get('requirement_id', '?')}` | {cov_icon} {cov_status} "
                 f"| {es.get('total', 0)} | {es.get('passed', 0)} | {es.get('failed', 0)} "
-                f"| {len(r.get('missing_scenarios', []))} | {risk_icon} {r.get('risk_level', '?')} |"
+                f"| {len(r.get('missing_scenarios', []))} | {risk_icon} {risk_level or '?'} |"
             )
         emit("")
 

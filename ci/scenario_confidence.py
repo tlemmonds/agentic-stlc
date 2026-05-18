@@ -167,14 +167,40 @@ def run_confidence_analysis(
     # Build quick lookup maps
     req_by_id: dict[str, dict] = {r["id"]: r for r in requirements if r.get("id")}
     sc_by_req: dict[str, dict] = {}
+    deprecated_by_req: dict[str, dict] = {}
     for sc in scenarios:
-        if sc.get("requirement_id") and sc.get("status") != "deprecated":
-            sc_by_req[sc["requirement_id"]] = sc
+        rid_for_sc = sc.get("requirement_id")
+        if not rid_for_sc:
+            continue
+        if sc.get("status") == "deprecated":
+            deprecated_by_req[rid_for_sc] = sc
+        else:
+            sc_by_req[rid_for_sc] = sc
 
     records: list[dict] = []
     for req in requirements:
         rid = req.get("id", "")
         sc  = sc_by_req.get(rid)
+        if not sc and rid in deprecated_by_req:
+            # Tombstone — the AC line is still in taskflow.txt but its
+            # scenario was removed by a release_diff DELETE op. Don't score
+            # it as a coverage gap; surface it as a deprecated record so
+            # downstream tables can render the tombstone explicitly.
+            dep = deprecated_by_req[rid]
+            records.append({
+                "requirement_id":    rid,
+                "scenario_id":       dep.get("id", ""),
+                "function_name":     dep.get("function_name", ""),
+                "feature":           dep.get("feature", "GENERAL"),
+                "kane_status":       "skipped",
+                "confidence_level":  "DEPRECATED",
+                "coverage_dimensions": {},
+                "coverage_gaps":     [],
+                "confidence_reason": f"Tombstoned in {dep.get('deprecated_in_release', 'prior release')}",
+                "risk_assessment":   {"criticality": "DEPRECATED", "risk_level": "DEPRECATED"},
+                "deprecated_in_release": dep.get("deprecated_in_release", ""),
+            })
+            continue
         if not sc:
             # Requirement has no scenario → synthesise a placeholder
             sc = {"id": "", "description": req.get("description", ""), "feature": "GENERAL",

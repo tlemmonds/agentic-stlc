@@ -214,7 +214,7 @@ def sync_scenarios(requirements: list, existing: list) -> list:
             (existing_sc or {}).get("kane_objective")
             or f"On {TARGET_URL} — {req['description']}"
         )
-        result.append({
+        record = {
             "id":                 sc_id,
             "test_case_id":       tc_id,
             "requirement_id":     req["id"],
@@ -229,7 +229,16 @@ def sync_scenarios(requirements: list, existing: list) -> list:
             "kane_url":           TARGET_URL,
             "kane_objective":     kane_objective,
             "last_verified":      TODAY,
-        })
+        }
+        # Preserve release-diff tombstone metadata (deprecated_in_release,
+        # deprecated_at) so the coverage report can attribute the removal
+        # to the right release. Without this, SC-005's "removed in v1.1.0"
+        # provenance is lost every time Stage 2 re-runs.
+        if status == "deprecated" and existing_sc:
+            for k in ("deprecated_in_release", "deprecated_at", "deprecated_by"):
+                if existing_sc.get(k):
+                    record[k] = existing_sc[k]
+        result.append(record)
 
     # Preserve deprecated entries for removed requirements
     for sc in existing:
