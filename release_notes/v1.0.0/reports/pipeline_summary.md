@@ -76,7 +76,16 @@
 
 ## Stage 3 · Generated Playwright Tests
 
-_No test generation data available._
+**6** test function(s) in `tests/playwright/test_powerapps.py`:
+
+| Scenario | Test Case | Function |
+|---|---|---|
+| `SC-001` | `TC-001` | `test_sc_001_user_can_create_a_task_with_a_title_and` |
+| `SC-002` | `TC-002` | `test_sc_002_user_can_list_all_tasks_ordered_by_due_d` |
+| `SC-003` | `TC-003` | `test_sc_003_user_can_mark_a_task_as_complete` |
+| `SC-004` | `TC-004` | `test_sc_004_user_can_edit_a_task_s_title_or_due_date` |
+| `SC-005` | `TC-005` | `test_sc_005_user_can_delete_a_task` |
+| `SC-006` | `TC-006` | `test_sc_006_user_can_filter_the_task_list_by_status` |
 
 ## Stage 4 · Test Selection
 
