@@ -39,7 +39,15 @@
 
 ## Stage 1 · Kane AI Functional Verification
 
-_No requirements data found in analyzed_requirements.json._
+| Req ID | Acceptance Criterion | Kane Status | What Kane Observed |
+|---|---|---|---|
+| `AC-001` | User can create a task with a title and a due date | ✅ passed | created a new task on nosecretformula.vercel.app |
+| `AC-002` | User can list all tasks ordered by due date | ✅ passed | sorted tasks by due date on nosecretformula.vercel.app |
+| `AC-003` | User can mark a task as complete | ✅ passed | marked a task as complete on nosecretformula.vercel.app |
+| `AC-004` | User can edit a task's title or due date | ✅ passed | opened the edit page for a task on nosecretformula.vercel.app |
+| `AC-005` | User can delete a task | ✅ passed | deleted a task on nosecretformula.vercel.app |
+| `AC-006` | User can filter the task list by status (active / done / all | ✅ passed | switched the task list status filter on nosecretformula.vercel.app |
+
 ## Stage 2 · Scenario Catalog
 
 
