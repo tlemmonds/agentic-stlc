@@ -203,11 +203,25 @@ def _missing_scenarios(
     covered_descriptions: list[str],
     has_negative: bool,
     has_edge_case: bool,
+    ac_description: str = "",
 ) -> list[dict]:
-    """Compare feature's expected scenario model against what's actually covered."""
+    """Compare feature's expected scenario model against what's actually covered.
+
+    Cross-AC noise suppression: EXPECTED_SCENARIOS is a feature-wide list, but
+    this function is called per-AC. Without filtering, every AC in a feature
+    gets flagged for happy paths that legitimately belong to sibling ACs (e.g.
+    AC-001 "create a task" gets falsely flagged for AC-003's "Mark complete",
+    AC-005's "Delete", etc., because all live under the TASK_CRUD feature
+    pool). We only flag a happy path when its keywords overlap with THIS AC's
+    own description — i.e. when this AC is the natural home for that scenario.
+    Negative and edge-case gaps remain per-AC since they're feature-level by
+    design (one feature can have a single empty-state edge case that applies
+    across all its happy paths).
+    """
     expected = EXPECTED_SCENARIOS.get(feature, [])
     missing = []
     covered_text = " ".join(d.lower() for d in covered_descriptions)
+    ac_keywords = {w for w in ac_description.lower().split() if len(w) > 4}
     for exp in expected:
         stype = exp["type"]
         if stype == "negative" and not has_negative:
@@ -215,10 +229,12 @@ def _missing_scenarios(
         elif stype == "edge_case" and not has_edge_case:
             missing.append(exp)
         elif stype == "happy_path":
-            # Heuristic: check if key words from expected description appear in covered texts
             words = [w for w in exp["description"].lower().split() if len(w) > 4]
-            if words and not any(w in covered_text for w in words):
-                missing.append(exp)
+            if not words or any(w in covered_text for w in words):
+                continue
+            if ac_keywords and not (set(words) & ac_keywords):
+                continue
+            missing.append(exp)
     return missing
 
 
@@ -376,6 +392,7 @@ def analyze(
             covered_descriptions=all_texts,
             has_negative=has_negative,
             has_edge_case=has_edge,
+            ac_description=description,
         )
         if missing:
             missing_all.append({

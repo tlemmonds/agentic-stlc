@@ -672,6 +672,8 @@ def main():
                                   "happy_path": "🟢 HAPPY"}.get(ms["type"], ms["type"].upper())
                     emit(f"- `[{type_badge}]` {ms['description']}")
                 emit("")
+            emit("> **Why these aren't auto-generated:** This is a coverage-gap report, not a pipeline failure. The pipeline only generates tests from explicit acceptance criteria in the BRD — auto-authoring negative/edge scenarios would require either an LLM-driven test generator (explicitly disallowed by the deterministic-pipeline design) or expanding the BRD's contract. To close a gap, add an explicit AC for it to the BRD and the pipeline will pick it up on the next release-notes diff.")
+            emit("")
 
         # Flaky requirements
         flaky_data = load_json("reports/flaky_requirements.json", {})

@@ -59,27 +59,37 @@ Total: **8** — 7 active, 0 new, 0 updated, 1 deprecated
 | Level | Count | Meaning |
 |---|---|---|
 | 🟢 VERY_HIGH    | 0    | All key dimensions covered; minor gaps acceptable |
-| 🟡 HIGH         | 7         | Core flow validated; some coverage classes missing |
+| 🟡 HIGH         | 2         | Core flow validated; some coverage classes missing |
 | 🟠 MEDIUM       | 0       | Happy path present but important gaps exist |
-| 🔴 LOW          | 0          | Significant gaps — Kane failure or no negative tests on critical feature |
+| 🔴 LOW          | 5          | Significant gaps — Kane failure or no negative tests on critical feature |
 | 🚨 CRITICAL_GAP | 0 | No scenario mapped — zero automated coverage |
 
 ### Requirement Confidence Detail
 
 | Requirement | Scenario | Feature | Criticality | Confidence | Kane | Top Gap | Recommendation |
 |---|---|---|---|---|---|---|---|
-| `AC-001` | `SC-001` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can create a task with a title and a due… |
-| `AC-002` | `SC-002` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can list all tasks ordered by due date, … |
-| `AC-003` | `SC-003` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can mark a task as complete' with invali… |
-| `AC-004` | `SC-004` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can edit a task's title or due date' wit… |
+| `AC-001` | `SC-001` | TASK_CRUD | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can create a task with a title and a due… |
+| `AC-002` | `SC-002` | TASK_LIST | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can list all tasks ordered by due date, … |
+| `AC-003` | `SC-003` | TASK_CRUD | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can mark a task as complete' with invali… |
+| `AC-004` | `SC-004` | TASK_CRUD | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can edit a task's title or due date' wit… |
 | `AC-005` | `SC-005` | — | ⚰️ DEPRECATED | ⚰️ DEPRECATED | ⏭️ skipped | — | removed in v1.1.0 |
-| `AC-006` | `SC-006` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can filter the task list by status (acti… |
-| `AC-007` | `SC-007` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can attach a colored label to a task and… |
-| `AC-008` | `SC-008` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can view archived tasks on the Archive p… |
+| `AC-006` | `SC-006` | FILTER | MEDIUM | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can filter the task list by status (acti… |
+| `AC-007` | `SC-007` | LABELS | MEDIUM | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can attach a colored label to a task and… |
+| `AC-008` | `SC-008` | ARCHIVE | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can view archived tasks on the Archive p… |
 
 ## Stage 3 · Generated Playwright Tests
 
-_No test generation data available._
+**7** test function(s) in `tests/playwright/test_powerapps.py`:
+
+| Scenario | Test Case | Function |
+|---|---|---|
+| `SC-001` | `TC-001` | `test_sc_001_user_can_create_a_task_with_a_title_and` |
+| `SC-002` | `TC-002` | `test_sc_002_user_can_list_all_tasks_ordered_by_due_d` |
+| `SC-003` | `TC-003` | `test_sc_003_user_can_mark_a_task_as_complete` |
+| `SC-004` | `TC-004` | `test_sc_004_user_can_edit_a_task_s_title_or_due_date` |
+| `SC-006` | `TC-006` | `test_sc_006_user_can_filter_the_task_list_by_status` |
+| `SC-007` | `TC-007` | `test_sc_007_filtered_tasks_by_a_red_label_on_nosecretformula_vercel_app` |
+| `SC-008` | `TC-008` | `test_sc_008_archived_and_restored_a_task_on_nosecretformula_vercel_app` |
 
 ## Stage 4 · Test Selection
 
@@ -246,45 +256,68 @@ Traceability integrity: **✅ VALID**
 | Metric | Value |
 |--------|-------|
 | Total Requirements | 8 |
-| Fully Covered | 7 (87.5%) |
+| Fully Covered | 7 (100.0%) |
 | Partially Covered | 0 |
 | Uncovered | 0 |
 | ⚰️ Deprecated (tombstone) | 1 |
 | Negative Test Coverage | 0.0% |
 | Mobile Coverage | 0.0% |
 | Android Coverage | 0.0% |
-| HyperExecute Coverage | 87.5% |
+| HyperExecute Coverage | 100.0% |
 | Flaky Requirements | 0 |
 | High-Risk Requirements | 0 |
-| Missing Scenario Types | 2 |
+| Missing Scenario Types | 10 |
 
 ### Requirement Coverage Detail
 
 | Requirement | Coverage | Tests | Pass | Fail | Missing | Risk |
 |-------------|----------|-------|------|------|---------|------|
-| `AC-001` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-002` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-003` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-004` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
+| `AC-001` | ✅ FULL | 2 | 2 | 0 | 2 | 🟡 MEDIUM |
+| `AC-002` | ✅ FULL | 2 | 2 | 0 | 1 | 🟡 MEDIUM |
+| `AC-003` | ✅ FULL | 2 | 2 | 0 | 2 | 🟡 MEDIUM |
+| `AC-004` | ✅ FULL | 2 | 2 | 0 | 2 | 🟡 MEDIUM |
 | `AC-005` | ⚰️ DEPRECATED | — | — | — | — | — *(removed in v1.1.0)* |
 | `AC-006` | ✅ FULL | 2 | 2 | 0 | 1 | 🟢 LOW |
 | `AC-007` | ✅ FULL | 2 | 2 | 0 | 1 | 🟢 LOW |
-| `AC-008` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
+| `AC-008` | ✅ FULL | 2 | 2 | 0 | 1 | 🟡 MEDIUM |
 
 ### Feature Coverage Heatmap
 
 | Feature | Criticality | Total | Covered | Partial | Uncovered |
 |---------|-------------|-------|---------|---------|-----------|
-| GENERAL | 🟡 MEDIUM | 5 | 5 | 0 | 0 |
-| FILTER | 🟢 LOW | 2 | 2 | 0 | 0 |
+| TASK_CRUD | 🔴 HIGH | 3 | 3 | 0 | 0 |
+| TASK_LIST | 🔴 HIGH | 1 | 1 | 0 | 0 |
+| FILTER | 🟡 MEDIUM | 1 | 1 | 0 | 0 |
+| LABELS | 🟡 MEDIUM | 1 | 1 | 0 | 0 |
+| ARCHIVE | 🔴 HIGH | 1 | 1 | 0 | 0 |
 
 ### Missing Scenario Types (Coverage Gaps)
 
-**`AC-006`** — FILTER (criticality: LOW)
+**`AC-001`** — TASK_CRUD (criticality: HIGH)
+- `[🔴 NEGATIVE]` Submit task form with empty title
+- `[🟡 EDGE]` Create a task with a past-due date
+
+**`AC-002`** — TASK_LIST (criticality: HIGH)
+- `[🟡 EDGE]` List view when no tasks exist
+
+**`AC-003`** — TASK_CRUD (criticality: HIGH)
+- `[🔴 NEGATIVE]` Submit task form with empty title
+- `[🟡 EDGE]` Create a task with a past-due date
+
+**`AC-004`** — TASK_CRUD (criticality: HIGH)
+- `[🔴 NEGATIVE]` Submit task form with empty title
+- `[🟡 EDGE]` Create a task with a past-due date
+
+**`AC-006`** — FILTER (criticality: MEDIUM)
 - `[🔴 NEGATIVE]` Apply filter that produces no results
 
-**`AC-007`** — FILTER (criticality: LOW)
-- `[🔴 NEGATIVE]` Apply filter that produces no results
+**`AC-007`** — LABELS (criticality: MEDIUM)
+- `[🔴 NEGATIVE]` Filter by a label with no tasks attached
+
+**`AC-008`** — ARCHIVE (criticality: HIGH)
+- `[🟡 EDGE]` Archive page is empty
+
+> **Why these aren't auto-generated:** This is a coverage-gap report, not a pipeline failure. The pipeline only generates tests from explicit acceptance criteria in the BRD — auto-authoring negative/edge scenarios would require either an LLM-driven test generator (explicitly disallowed by the deterministic-pipeline design) or expanding the BRD's contract. To close a gap, add an explicit AC for it to the BRD and the pipeline will pick it up on the next release-notes diff.
 
 ## Quality Gates
 
@@ -292,7 +325,7 @@ Traceability integrity: **✅ VALID**
 
 | Gate | Severity | Status | Actual | Threshold |
 |------|----------|--------|--------|-----------|
-| Minimum requirement coverage | 🟡 WARNING | ✅ | 87.5 % | 50.0 % |
+| Minimum requirement coverage | 🟡 WARNING | ✅ | 100.0 % | 50.0 % |
 | Minimum test pass rate | 🔴 CRITICAL | ✅ | 100.0 % | 75.0 % |
 | Flaky test threshold | 🟡 WARNING | ✅ | 0 flaky requirements | 5 flaky requirements |
 | Critical requirements covered | 🟡 WARNING | ✅ | 0 uncovered HIGH-criticality requirements | 0 uncovered HIGH-criticality requirements |
