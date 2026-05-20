@@ -28,12 +28,12 @@
 
 | Op | Scenario | Requirement | Issue | Score | Change |
 |---|---|---|---|---|---|
-| 🟢 ADD | `—` | `AC-007` | — | 0.00 | **new:** User can create a task with a title and a due date |
-| 🟢 ADD | `—` | `AC-008` | — | 0.00 | **new:** User can list all tasks ordered by due date |
-| 🟢 ADD | `—` | `AC-009` | — | 0.00 | **new:** User can mark a task as complete |
-| 🟢 ADD | `—` | `AC-010` | — | 0.00 | **new:** User can edit a task's title or due date |
-| 🟢 ADD | `—` | `AC-011` | — | 0.00 | **new:** User can delete a task |
-| 🟢 ADD | `—` | `AC-012` | — | 0.00 | **new:** User can filter the task list by status (active / done / all) |
+| 🟢 ADD | `—` | `AC-001` | — | 0.00 | **new:** User can create a task with a title and a due date |
+| 🟢 ADD | `—` | `AC-002` | — | 0.00 | **new:** User can list all tasks ordered by due date |
+| 🟢 ADD | `—` | `AC-003` | — | 0.00 | **new:** User can mark a task as complete |
+| 🟢 ADD | `—` | `AC-004` | — | 0.00 | **new:** User can edit a task's title or due date |
+| 🟢 ADD | `—` | `AC-005` | — | 0.00 | **new:** User can delete a task |
+| 🟢 ADD | `—` | `AC-006` | — | 0.00 | **new:** User can filter the task list by status (active / done / all) |
 
 > ℹ️ Preview only. Run with `apply_release_delta=true` to commit operations to `scenarios.json` and freeze the new release lock.
 
