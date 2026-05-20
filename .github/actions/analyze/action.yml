@@ -81,6 +81,11 @@ runs:
 
     - name: "Cache Kane results (by requirements hash)"
       id: kane-cache
+      # Skip the cache when FORCE_RE_AUTHOR is set so `regenerate_tests: true`
+      # actually re-records instead of replaying the previous run's frozen
+      # output. Without this gate, a single bad run pollutes every subsequent
+      # workflow on the same requirements hash.
+      if: env.FORCE_RE_AUTHOR != 'true'
       uses: actions/cache@v4
       with:
         path: requirements/analyzed_requirements.json
