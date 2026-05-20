@@ -140,6 +140,11 @@ runs:
         FORCE_RE_AUTHOR: ${{ env.FORCE_RE_AUTHOR || 'false' }}
         KANE_PROJECT_ID: ${{ inputs.kane-project-id }}
         KANE_FOLDER_ID:  ${{ inputs.kane-folder-id }}
+        # Serial dispatch: parallel kane-cli sessions collide during TMS
+        # upload, causing subprocess timeouts and false-failure verdicts.
+        # See investigation 2026-05-20 (workers=5 → 0/8 passed both locally
+        # and in CI).
+        KANE_MAX_WORKERS: "1"
       run: python ci/analyze_requirements.py
 
     - name: "Validate Stage 1 output"
