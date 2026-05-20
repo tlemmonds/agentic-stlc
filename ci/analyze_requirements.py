@@ -437,12 +437,13 @@ def main():
         username = os.environ.get("LT_USERNAME", "")
         access_key = os.environ.get("LT_ACCESS_KEY", "")
         force_re = os.environ.get("FORCE_RE_AUTHOR", "false").lower() == "true"
+        max_workers = int(os.environ.get("KANE_MAX_WORKERS", "5"))
         print(
-            f"[Stage 1] Test.md dispatch — workers=5, {len(criteria)} criteria, "
+            f"[Stage 1] Test.md dispatch — workers={max_workers}, {len(criteria)} criteria, "
             f"force_re_author={force_re}"
         )
         results = dispatch_all(
-            criteria, username=username, access_key=access_key, max_workers=5,
+            criteria, username=username, access_key=access_key, max_workers=max_workers,
         )
         cache_hit = False
 
