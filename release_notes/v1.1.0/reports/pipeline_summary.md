@@ -89,6 +89,8 @@ Total: **8** — 7 active, 0 new, 0 updated, 1 deprecated
 | `AC-007` | `SC-007` | LABELS | MEDIUM | **75** | 🟡 HIGH | ✅ passed | Missing negative/error scenario coverage |
 | `AC-008` | `SC-008` | ARCHIVE | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
 
+> **How to close these gaps:** A *Missing negative/error scenario coverage* gap deducts **25 points** from the confidence score, and for HIGH-criticality features (TASK_CRUD, TASK_LIST, ARCHIVE) it compounds with edge-case and mobile penalties — which is why happy-path-only HIGH-crit ACs land at score **25 / LOW** while MEDIUM-crit ACs with the same gap sit at **75 / HIGH**. Resolve it by listing the negative or error case as its own acceptance criterion in the BRD and naming it in the release notes (e.g. *"User cannot submit a task with an empty title"*). The pipeline picks the new AC up on the next release-notes diff, generates a scenario for it, and Kane verifies it against the AUT — closing the gap and lifting the score on the next run.
+
 ## Stage 3 · Generated Playwright Tests
 
 **7** test function(s) in `tests/playwright/test_powerapps.py`:
