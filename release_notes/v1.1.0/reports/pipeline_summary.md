@@ -56,26 +56,38 @@ Total: **8** — 7 active, 0 new, 0 updated, 1 deprecated
 
 **Confidence gate:** ✅ PASSED
 
-| Level | Count | Meaning |
+**Confidence Score Ranges** _(score → level)_:
+
+| Score Range | Level | Meaning |
 |---|---|---|
-| 🟢 VERY_HIGH    | 0    | All key dimensions covered; minor gaps acceptable |
-| 🟡 HIGH         | 2         | Core flow validated; some coverage classes missing |
-| 🟠 MEDIUM       | 0       | Happy path present but important gaps exist |
-| 🔴 LOW          | 5          | Significant gaps — Kane failure or no negative tests on critical feature |
-| 🚨 CRITICAL_GAP | 0 | No scenario mapped — zero automated coverage |
+| 90 – 100 | 🟢 VERY_HIGH    | All coverage dimensions satisfied |
+| 75 – 89  | 🟡 HIGH         | Core flow validated; one minor coverage gap |
+| 50 – 74  | 🟠 MEDIUM       | Happy path present; two important gaps remain |
+| 1 – 49   | 🔴 LOW          | Three or more gaps OR Kane functional failure |
+| 0        | 🚨 CRITICAL_GAP | No scenario mapped — zero automated coverage |
+
+**Distribution across this release:**
+
+| Level | Count |
+|---|---|
+| 🟢 VERY_HIGH    | 0 |
+| 🟡 HIGH         | 2 |
+| 🟠 MEDIUM       | 0 |
+| 🔴 LOW          | 5 |
+| 🚨 CRITICAL_GAP | 0 |
 
 ### Requirement Confidence Detail
 
-| Requirement | Scenario | Feature | Criticality | Confidence | Kane | Top Gap | Recommendation |
+| Requirement | Scenario | Feature | Criticality | Score | Confidence | Kane | Top Gap |
 |---|---|---|---|---|---|---|---|
-| `AC-001` | `SC-001` | TASK_CRUD | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can create a task with a title and a due… |
-| `AC-002` | `SC-002` | TASK_LIST | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can list all tasks ordered by due date, … |
-| `AC-003` | `SC-003` | TASK_CRUD | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can mark a task as complete' with invali… |
-| `AC-004` | `SC-004` | TASK_CRUD | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can edit a task's title or due date' wit… |
-| `AC-005` | `SC-005` | — | ⚰️ DEPRECATED | ⚰️ DEPRECATED | ⏭️ skipped | — | removed in v1.1.0 |
-| `AC-006` | `SC-006` | FILTER | MEDIUM | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can filter the task list by status (acti… |
-| `AC-007` | `SC-007` | LABELS | MEDIUM | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can attach a colored label to a task and… |
-| `AC-008` | `SC-008` | ARCHIVE | HIGH | 🔴 LOW | ✅ passed |  | Add scenario: 'User can view archived tasks on the Archive p… |
+| `AC-001` | `SC-001` | TASK_CRUD | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-002` | `SC-002` | TASK_LIST | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-003` | `SC-003` | TASK_CRUD | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-004` | `SC-004` | TASK_CRUD | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-005` | `SC-005` | — | ⚰️ DEPRECATED | — | ⚰️ DEPRECATED | ⏭️ skipped | removed in v1.1.0 |
+| `AC-006` | `SC-006` | FILTER | MEDIUM | **75** | 🟡 HIGH | ✅ passed | Missing negative/error scenario coverage |
+| `AC-007` | `SC-007` | LABELS | MEDIUM | **75** | 🟡 HIGH | ✅ passed | Missing negative/error scenario coverage |
+| `AC-008` | `SC-008` | ARCHIVE | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
 
 ## Stage 3 · Generated Playwright Tests
 

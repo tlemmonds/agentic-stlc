@@ -45,9 +45,29 @@ _MOBILE_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
-# Features that are always considered HIGH criticality
-_HIGH_CRITICALITY_FEATURES = {"CART", "CHECKOUT", "AUTH", "PAYMENT"}
-_MEDIUM_CRITICALITY_FEATURES = {"SEARCH", "CATALOG", "PRODUCT_DETAIL", "WISHLIST"}
+# TaskFlow feature criticality — must stay in sync with FEATURE_CRITICALITY
+# in ci/coverage_analysis.py.
+_HIGH_CRITICALITY_FEATURES = {"TASK_CRUD", "TASK_LIST", "ARCHIVE"}
+_MEDIUM_CRITICALITY_FEATURES = {"FILTER", "LABELS"}
+
+# Score → confidence-level bucket map. Exported so the GitHub summary can
+# render it as a "Confidence Score Ranges" legend table. Order matters: scan
+# top-to-bottom and return the first range that contains the score.
+CONFIDENCE_SCORE_RANGES: list[dict] = [
+    {"level": "VERY_HIGH",    "min": 90, "max": 100, "label": "🟢 VERY_HIGH",    "meaning": "All coverage dimensions satisfied"},
+    {"level": "HIGH",         "min": 75, "max": 89,  "label": "🟡 HIGH",         "meaning": "Core flow validated; one minor coverage gap"},
+    {"level": "MEDIUM",       "min": 50, "max": 74,  "label": "🟠 MEDIUM",       "meaning": "Happy path present; two important gaps remain"},
+    {"level": "LOW",          "min": 1,  "max": 49,  "label": "🔴 LOW",          "meaning": "Three or more gaps OR Kane functional failure"},
+    {"level": "CRITICAL_GAP", "min": 0,  "max": 0,   "label": "🚨 CRITICAL_GAP", "meaning": "No scenario mapped — zero automated coverage"},
+]
+
+
+def _level_for_score(score: int) -> str:
+    """Map a numeric confidence_score (0-100) to its bucket label."""
+    for band in CONFIDENCE_SCORE_RANGES:
+        if band["min"] <= score <= band["max"]:
+            return band["level"]
+    return "LOW"
 
 
 def _score_scenario(
@@ -78,33 +98,40 @@ def _score_scenario(
         else "LOW"
     )
 
-    # Coverage gaps
+    # Coverage gaps — order matters: the GitHub summary surfaces the first
+    # gap in the "Top Gap" column, so list disqualifying signals first so
+    # Kane functional failures aren't hidden behind a generic
+    # "Missing negative" line.
     gaps: list[str] = []
+    if kane_status == "failed":
+        gaps.append("Kane AI functional verification failed")
+    if kane_status == "not_run":
+        gaps.append("Kane AI verification not yet executed")
     if not has_negative:
         gaps.append("Missing negative/error scenario coverage")
     if not has_edge and criticality == "HIGH":
         gaps.append("Missing edge-case coverage for high-criticality feature")
     if not has_mobile and feature in _HIGH_CRITICALITY_FEATURES:
         gaps.append("No mobile coverage specified")
-    if kane_status == "failed":
-        gaps.append("Kane AI functional verification failed")
+
+    # Confidence score (0-100) — per-dimension penalties, criticality-aware.
+    # See CONFIDENCE_SCORE_RANGES for the score → level mapping the GitHub
+    # summary renders as a legend table.
+    score = 100
+    if not has_negative:
+        score -= 25
+    if not has_edge and criticality == "HIGH":
+        score -= 25
+    if not has_mobile and feature in _HIGH_CRITICALITY_FEATURES:
+        score -= 25
     if kane_status == "not_run":
-        gaps.append("Kane AI verification not yet executed")
-
-    # Confidence level
-    gap_count = len(gaps)
-    if gap_count == 0:
-        confidence = "HIGH"
-    elif gap_count <= 1 and criticality != "HIGH":
-        confidence = "HIGH"
-    elif gap_count <= 2:
-        confidence = "MEDIUM"
-    else:
-        confidence = "LOW"
-
-    # Override: Kane failure → always LOW
+        score -= 30
     if kane_status == "failed":
-        confidence = "LOW"
+        # Cap into the LOW band — a failed functional check is disqualifying.
+        score = min(score, 25)
+    score = max(0, score)
+
+    confidence = _level_for_score(score)
 
     # Build recommendation list
     recommendations: list[str] = []
@@ -125,6 +152,7 @@ def _score_scenario(
         "feature": feature,
         "criticality": criticality,
         "kane_status": kane_status,
+        "confidence_score": score,
         "confidence_level": confidence,
         "coverage_dimensions": {
             "happy_path":  has_happy,

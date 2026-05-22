@@ -334,18 +334,30 @@ def main():
         else:
             emit("**Confidence gate:** ✅ PASSED")
         emit("")
-        emit("| Level | Count | Meaning |")
+        emit("**Confidence Score Ranges** _(score → level)_:")
+        emit("")
+        emit("| Score Range | Level | Meaning |")
         emit("|---|---|---|")
-        emit(f"| 🟢 VERY_HIGH    | {by_level.get('VERY_HIGH', 0)}    | All key dimensions covered; minor gaps acceptable |")
-        emit(f"| 🟡 HIGH         | {by_level.get('HIGH', 0)}         | Core flow validated; some coverage classes missing |")
-        emit(f"| 🟠 MEDIUM       | {by_level.get('MEDIUM', 0)}       | Happy path present but important gaps exist |")
-        emit(f"| 🔴 LOW          | {by_level.get('LOW', 0)}          | Significant gaps — Kane failure or no negative tests on critical feature |")
-        emit(f"| 🚨 CRITICAL_GAP | {by_level.get('CRITICAL_GAP', 0)} | No scenario mapped — zero automated coverage |")
+        emit("| 90 – 100 | 🟢 VERY_HIGH    | All coverage dimensions satisfied |")
+        emit("| 75 – 89  | 🟡 HIGH         | Core flow validated; one minor coverage gap |")
+        emit("| 50 – 74  | 🟠 MEDIUM       | Happy path present; two important gaps remain |")
+        emit("| 1 – 49   | 🔴 LOW          | Three or more gaps OR Kane functional failure |")
+        emit("| 0        | 🚨 CRITICAL_GAP | No scenario mapped — zero automated coverage |")
+        emit("")
+        emit("**Distribution across this release:**")
+        emit("")
+        emit("| Level | Count |")
+        emit("|---|---|")
+        emit(f"| 🟢 VERY_HIGH    | {by_level.get('VERY_HIGH', 0)} |")
+        emit(f"| 🟡 HIGH         | {by_level.get('HIGH', 0)} |")
+        emit(f"| 🟠 MEDIUM       | {by_level.get('MEDIUM', 0)} |")
+        emit(f"| 🔴 LOW          | {by_level.get('LOW', 0)} |")
+        emit(f"| 🚨 CRITICAL_GAP | {by_level.get('CRITICAL_GAP', 0)} |")
         emit("")
         if records:
             emit("### Requirement Confidence Detail")
             emit("")
-            emit("| Requirement | Scenario | Feature | Criticality | Confidence | Kane | Top Gap | Recommendation |")
+            emit("| Requirement | Scenario | Feature | Criticality | Score | Confidence | Kane | Top Gap |")
             emit("|---|---|---|---|---|---|---|---|")
             level_icon = {
                 "VERY_HIGH": "🟢 VERY_HIGH",
@@ -363,38 +375,36 @@ def main():
                     dep_in = r.get("deprecated_in_release", "prior release")
                     emit(
                         f"| `{r.get('requirement_id', '')}` | `{r.get('scenario_id', '')}` | "
-                        f"— | ⚰️ DEPRECATED | ⚰️ DEPRECATED | ⏭️ skipped | "
-                        f"— | removed in {dep_in} |"
+                        f"— | ⚰️ DEPRECATED | — | ⚰️ DEPRECATED | ⏭️ skipped | "
+                        f"removed in {dep_in} |"
                     )
                     continue
-                gaps  = r.get("gaps", []) or []
+                gaps  = r.get("coverage_gaps", []) or []
                 top_gap = (gaps[0] if gaps else "")[:60]
-                recs  = r.get("recommendations", []) or []
-                top_rec = (recs[0] if recs else "")[:60]
+                score = r.get("confidence_score", "")
                 emit(
                     f"| `{r.get('requirement_id', '')}` | `{r.get('scenario_id', '')}` | "
                     f"{r.get('feature', '')} | {r.get('criticality', '')} | "
-                    f"{level_icon.get(lvl, lvl)} | {kane_icon.get(kane, kane)} | "
-                    f"{top_gap}{'…' if len(top_gap) == 60 else ''} | "
-                    f"{top_rec}{'…' if len(top_rec) == 60 else ''} |"
+                    f"**{score}** | {level_icon.get(lvl, lvl)} | {kane_icon.get(kane, kane)} | "
+                    f"{top_gap}{'…' if len(top_gap) == 60 else ''} |"
                 )
             emit("")
 
     # ── Stage 3: Test Generation ───────────────────────────────────────────────
     emit("## Stage 3 · Generated Playwright Tests")
     emit("")
-    objectives = load_json("kane/objectives.json", [])
-    active_scenarios_set = {s["id"] for s in scenarios if s.get("status") != "deprecated"}
-    active_objectives = [o for o in objectives if o.get("scenario_id") in active_scenarios_set]
-    if active_objectives:
-        emit(f"**{len(active_objectives)}** test function(s) in `tests/playwright/test_powerapps.py`:")
+    # Source from scenarios.json directly — kane/objectives.json is no longer
+    # written by the pipeline (test generation happens via collect_kane_exports
+    # in agent.py Stage 3a, which writes tests/playwright/test_powerapps.py).
+    active_scenarios = [s for s in scenarios if s.get("status") != "deprecated"]
+    if active_scenarios:
+        emit(f"**{len(active_scenarios)}** test function(s) in `tests/playwright/test_powerapps.py`:")
         emit("")
         emit("| Scenario | Test Case | Function |")
         emit("|---|---|---|")
-        for o in active_objectives:
-            sc = next((s for s in scenarios if s["id"] == o["scenario_id"]), {})
-            fn = sc.get("function_name", o.get("objective", ""))
-            emit(f"| `{o['scenario_id']}` | `{o.get('test_case_id', '')}` | `{fn}` |")
+        for sc in active_scenarios:
+            fn = sc.get("function_name", "")
+            emit(f"| `{sc['id']}` | `{sc.get('test_case_id', '')}` | `{fn}` |")
     else:
         emit("_No test generation data available._")
     emit("")

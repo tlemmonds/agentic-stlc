@@ -55,24 +55,36 @@
 
 **Confidence gate:** ✅ PASSED
 
-| Level | Count | Meaning |
+**Confidence Score Ranges** _(score → level)_:
+
+| Score Range | Level | Meaning |
 |---|---|---|
-| 🟢 VERY_HIGH    | 0    | All key dimensions covered; minor gaps acceptable |
-| 🟡 HIGH         | 6         | Core flow validated; some coverage classes missing |
-| 🟠 MEDIUM       | 0       | Happy path present but important gaps exist |
-| 🔴 LOW          | 0          | Significant gaps — Kane failure or no negative tests on critical feature |
-| 🚨 CRITICAL_GAP | 0 | No scenario mapped — zero automated coverage |
+| 90 – 100 | 🟢 VERY_HIGH    | All coverage dimensions satisfied |
+| 75 – 89  | 🟡 HIGH         | Core flow validated; one minor coverage gap |
+| 50 – 74  | 🟠 MEDIUM       | Happy path present; two important gaps remain |
+| 1 – 49   | 🔴 LOW          | Three or more gaps OR Kane functional failure |
+| 0        | 🚨 CRITICAL_GAP | No scenario mapped — zero automated coverage |
+
+**Distribution across this release:**
+
+| Level | Count |
+|---|---|
+| 🟢 VERY_HIGH    | 0 |
+| 🟡 HIGH         | 1 |
+| 🟠 MEDIUM       | 0 |
+| 🔴 LOW          | 5 |
+| 🚨 CRITICAL_GAP | 0 |
 
 ### Requirement Confidence Detail
 
-| Requirement | Scenario | Feature | Criticality | Confidence | Kane | Top Gap | Recommendation |
+| Requirement | Scenario | Feature | Criticality | Score | Confidence | Kane | Top Gap |
 |---|---|---|---|---|---|---|---|
-| `AC-001` | `SC-001` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can create a task with a title and a due… |
-| `AC-002` | `SC-002` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can list all tasks ordered by due date' … |
-| `AC-003` | `SC-003` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can mark a task as complete' with invali… |
-| `AC-004` | `SC-004` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can edit a task's title or due date' wit… |
-| `AC-005` | `SC-005` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can delete a task' with invalid/error co… |
-| `AC-006` | `SC-006` | GENERAL | LOW | 🟡 HIGH | ✅ passed |  | Add scenario: 'User can filter the task list by status (acti… |
+| `AC-001` | `SC-001` | TASK_CRUD | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-002` | `SC-002` | TASK_LIST | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-003` | `SC-003` | TASK_CRUD | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-004` | `SC-004` | TASK_CRUD | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-005` | `SC-005` | TASK_CRUD | HIGH | **25** | 🔴 LOW | ✅ passed | Missing negative/error scenario coverage |
+| `AC-006` | `SC-006` | FILTER | MEDIUM | **75** | 🟡 HIGH | ✅ passed | Missing negative/error scenario coverage |
 
 ## Stage 3 · Generated Playwright Tests
 
@@ -256,25 +268,52 @@ Confirmed the filter control shows the three tabs (Active, Done, All) and the ru
 | HyperExecute Coverage | 100.0% |
 | Flaky Requirements | 0 |
 | High-Risk Requirements | 0 |
-| Missing Scenario Types | 1 |
+| Missing Scenario Types | 10 |
 
 ### Requirement Coverage Detail
 
 | Requirement | Coverage | Tests | Pass | Fail | Missing | Risk |
 |-------------|----------|-------|------|------|---------|------|
-| `AC-001` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-002` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-003` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-004` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
-| `AC-005` | ✅ FULL | 2 | 2 | 0 | 0 | 🟢 LOW |
+| `AC-001` | ✅ FULL | 2 | 2 | 0 | 2 | 🟡 MEDIUM |
+| `AC-002` | ✅ FULL | 2 | 2 | 0 | 1 | 🟡 MEDIUM |
+| `AC-003` | ✅ FULL | 2 | 2 | 0 | 2 | 🟡 MEDIUM |
+| `AC-004` | ✅ FULL | 2 | 2 | 0 | 2 | 🟡 MEDIUM |
+| `AC-005` | ✅ FULL | 2 | 2 | 0 | 2 | 🟡 MEDIUM |
 | `AC-006` | ✅ FULL | 2 | 2 | 0 | 1 | 🟢 LOW |
 
 ### Feature Coverage Heatmap
 
 | Feature | Criticality | Total | Covered | Partial | Uncovered |
 |---------|-------------|-------|---------|---------|-----------|
-| GENERAL | 🟡 MEDIUM | 5 | 5 | 0 | 0 |
-| FILTER | 🟢 LOW | 1 | 1 | 0 | 0 |
+| TASK_CRUD | 🔴 HIGH | 4 | 4 | 0 | 0 |
+| TASK_LIST | 🔴 HIGH | 1 | 1 | 0 | 0 |
+| FILTER | 🟡 MEDIUM | 1 | 1 | 0 | 0 |
+
+### Missing Scenario Types (Coverage Gaps)
+
+**`AC-001`** — TASK_CRUD (criticality: HIGH)
+- `[🔴 NEGATIVE]` Submit task form with empty title
+- `[🟡 EDGE]` Create a task with a past-due date
+
+**`AC-002`** — TASK_LIST (criticality: HIGH)
+- `[🟡 EDGE]` List view when no tasks exist
+
+**`AC-003`** — TASK_CRUD (criticality: HIGH)
+- `[🔴 NEGATIVE]` Submit task form with empty title
+- `[🟡 EDGE]` Create a task with a past-due date
+
+**`AC-004`** — TASK_CRUD (criticality: HIGH)
+- `[🔴 NEGATIVE]` Submit task form with empty title
+- `[🟡 EDGE]` Create a task with a past-due date
+
+**`AC-005`** — TASK_CRUD (criticality: HIGH)
+- `[🔴 NEGATIVE]` Submit task form with empty title
+- `[🟡 EDGE]` Create a task with a past-due date
+
+**`AC-006`** — FILTER (criticality: MEDIUM)
+- `[🔴 NEGATIVE]` Apply filter that produces no results
+
+> **Why these aren't auto-generated:** This is a coverage-gap report, not a pipeline failure. The pipeline only generates tests from explicit acceptance criteria in the BRD — auto-authoring negative/edge scenarios would require either an LLM-driven test generator (explicitly disallowed by the deterministic-pipeline design) or expanding the BRD's contract. To close a gap, add an explicit AC for it to the BRD and the pipeline will pick it up on the next release-notes diff.
 
 ## Quality Gates
 
