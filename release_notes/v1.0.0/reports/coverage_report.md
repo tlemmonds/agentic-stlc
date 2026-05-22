@@ -22,27 +22,28 @@ _Generated: 2026-05-16 04:44 UTC_
 
 | Feature | Criticality | Total | Covered | Partial | Uncovered | Failed | Flaky |
 |---------|-------------|-------|---------|---------|-----------|--------|-------|
-| GENERAL | MEDIUM | 5 | 5 | 0 | 0 | 0 | 0 |
-| FILTER | LOW | 1 | 1 | 0 | 0 | 0 | 0 |
+| TASK_CRUD | HIGH | 4 | 4 | 0 | 0 | 0 | 0 |
+| TASK_LIST | HIGH | 1 | 1 | 0 | 0 | 0 | 0 |
+| FILTER | MEDIUM | 1 | 1 | 0 | 0 | 0 | 0 |
 
 ## Requirement Coverage Detail
 
 | Requirement | Coverage | Tests | Pass | Fail | Missing | Risk |
 |-------------|----------|-------|------|------|---------|------|
-| `AC-001` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-002` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-003` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-004` | FULL | 2 | 2 | 0 | 0 | LOW |
-| `AC-005` | FULL | 2 | 2 | 0 | 0 | LOW |
+| `AC-001` | FULL | 2 | 2 | 0 | 2 | MEDIUM |
+| `AC-002` | FULL | 2 | 2 | 0 | 1 | MEDIUM |
+| `AC-003` | FULL | 2 | 2 | 0 | 2 | MEDIUM |
+| `AC-004` | FULL | 2 | 2 | 0 | 2 | MEDIUM |
+| `AC-005` | FULL | 2 | 2 | 0 | 2 | MEDIUM |
 | `AC-006` | FULL | 2 | 2 | 0 | 1 | LOW |
 
 ## Per-Requirement Detail
 
-### AC-001 — GENERAL
+### AC-001 — TASK_CRUD
 
 > User can create a task with a title and a due date
 
-- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** passed
+- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** HIGH  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 100.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no
@@ -56,11 +57,11 @@ _Generated: 2026-05-16 04:44 UTC_
 
 **Covered by:** SC-001
 
-### AC-002 — GENERAL
+### AC-002 — TASK_LIST
 
 > User can list all tasks ordered by due date
 
-- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** passed
+- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** HIGH  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 100.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no
@@ -74,11 +75,11 @@ _Generated: 2026-05-16 04:44 UTC_
 
 **Covered by:** SC-002
 
-### AC-003 — GENERAL
+### AC-003 — TASK_CRUD
 
 > User can mark a task as complete
 
-- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** passed
+- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** HIGH  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 100.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no
@@ -92,11 +93,11 @@ _Generated: 2026-05-16 04:44 UTC_
 
 **Covered by:** SC-003
 
-### AC-004 — GENERAL
+### AC-004 — TASK_CRUD
 
 > User can edit a task's title or due date
 
-- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** passed
+- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** HIGH  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 100.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no
@@ -110,11 +111,11 @@ _Generated: 2026-05-16 04:44 UTC_
 
 **Covered by:** SC-004
 
-### AC-005 — GENERAL
+### AC-005 — TASK_CRUD
 
 > User can delete a task
 
-- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** passed
+- **Coverage Status:** FULL  |  **Risk:** MEDIUM  |  **Criticality:** HIGH  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 100.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no
@@ -132,7 +133,7 @@ _Generated: 2026-05-16 04:44 UTC_
 
 > User can filter the task list by status (active / done / all)
 
-- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** LOW  |  **Kane:** passed
+- **Coverage Status:** FULL  |  **Risk:** LOW  |  **Criticality:** MEDIUM  |  **Kane:** passed
 - **Functional Coverage:** 100.0%  |  **Negative Coverage:** 0.0%
 - **Browsers Tested:** chrome, firefox
 - **Flaky:** no

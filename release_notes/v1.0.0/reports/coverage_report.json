@@ -20,8 +20,8 @@
     {
       "requirement_id": "AC-001",
       "description": "User can create a task with a title and a due date",
-      "feature": "GENERAL",
-      "criticality": "MEDIUM",
+      "feature": "TASK_CRUD",
+      "criticality": "HIGH",
       "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
@@ -54,15 +54,15 @@
       ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 100.0,
-      "risk_level": "LOW",
+      "risk_level": "MEDIUM",
       "flaky": false,
       "retry_count": 0
     },
     {
       "requirement_id": "AC-002",
       "description": "User can list all tasks ordered by due date",
-      "feature": "GENERAL",
-      "criticality": "MEDIUM",
+      "feature": "TASK_LIST",
+      "criticality": "HIGH",
       "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
@@ -95,15 +95,15 @@
       ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 100.0,
-      "risk_level": "LOW",
+      "risk_level": "MEDIUM",
       "flaky": false,
       "retry_count": 0
     },
     {
       "requirement_id": "AC-003",
       "description": "User can mark a task as complete",
-      "feature": "GENERAL",
-      "criticality": "MEDIUM",
+      "feature": "TASK_CRUD",
+      "criticality": "HIGH",
       "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
@@ -136,15 +136,15 @@
       ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 100.0,
-      "risk_level": "LOW",
+      "risk_level": "MEDIUM",
       "flaky": false,
       "retry_count": 0
     },
     {
       "requirement_id": "AC-004",
       "description": "User can edit a task's title or due date",
-      "feature": "GENERAL",
-      "criticality": "MEDIUM",
+      "feature": "TASK_CRUD",
+      "criticality": "HIGH",
       "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
@@ -177,15 +177,15 @@
       ],
       "functional_coverage_pct": 100.0,
       "negative_coverage_pct": 100.0,
-      "risk_level": "LOW",
+      "risk_level": "MEDIUM",
       "flaky": false,
       "retry_count": 0
     },
     {
       "requirement_id": "AC-005",
       "description": "User can delete a task",
-      "feature": "GENERAL",
-      "criticality": "MEDIUM",
+      "feature": "TASK_CRUD",
+      "criticality": "HIGH",
       "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
@@ -226,7 +226,7 @@
       "requirement_id": "AC-006",
       "description": "User can filter the task list by status (active / done / all)",
       "feature": "FILTER",
-      "criticality": "LOW",
+      "criticality": "MEDIUM",
       "kane_status": "passed",
       "coverage_status": "FULL",
       "covered_scenarios": [
@@ -271,22 +271,32 @@
   ],
   "feature_rollup": [
     {
-      "feature": "GENERAL",
-      "criticality": "MEDIUM",
-      "total": 5,
-      "covered": 5,
+      "feature": "TASK_CRUD",
+      "criticality": "HIGH",
+      "total": 4,
+      "covered": 4,
       "partial": 0,
-      "none": 0,
+      "uncovered": 0,
+      "failed": 0,
+      "flaky": 0
+    },
+    {
+      "feature": "TASK_LIST",
+      "criticality": "HIGH",
+      "total": 1,
+      "covered": 1,
+      "partial": 0,
+      "uncovered": 0,
       "failed": 0,
       "flaky": 0
     },
     {
       "feature": "FILTER",
-      "criticality": "LOW",
+      "criticality": "MEDIUM",
       "total": 1,
       "covered": 1,
       "partial": 0,
-      "none": 0,
+      "uncovered": 0,
       "failed": 0,
       "flaky": 0
     }
