@@ -71,10 +71,32 @@ def _resolve_job_id(explicit: str | None) -> str | None:
 
 
 def _download(job_id: str, name: str, username: str, access_key: str) -> bytes:
+    """The artefact endpoint 302-redirects to a signed blob URL. Basic auth must
+    be sent to the API host only — forwarding it to the blob host yields 403 —
+    so use httpx (drops auth on cross-host redirects); fall back to a urllib
+    redirect handler that strips the header."""
     url = f"{API}/artefacts/{job_id}/download?name={name}"
+    try:
+        import httpx  # engine dependency
+        with httpx.Client(follow_redirects=True, timeout=120) as client:
+            resp = client.get(url, auth=(username, access_key), headers={"Accept": "*/*"})
+            if resp.status_code >= 400:
+                raise urllib.error.HTTPError(url, resp.status_code, resp.reason_phrase, hdrs=None, fp=None)  # type: ignore[arg-type]
+            return resp.content
+    except ImportError:
+        pass
+
+    class _StripAuthRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: N802
+            new_req = super().redirect_request(req, fp, code, msg, headers, newurl)
+            if new_req is not None and "Authorization" in new_req.headers:
+                new_req.remove_header("Authorization")
+            return new_req
+
     token = base64.b64encode(f"{username}:{access_key}".encode()).decode()
     req = urllib.request.Request(url, headers={"Authorization": f"Basic {token}", "Accept": "*/*"})
-    with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310 — fixed https host
+    opener = urllib.request.build_opener(_StripAuthRedirect())
+    with opener.open(req, timeout=120) as resp:  # noqa: S310 — fixed https host
         return resp.read()
 
 
