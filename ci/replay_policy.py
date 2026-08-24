@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+sys.path.insert(0, str(Path(__file__).parent))
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TESTS_KANE_DIR = REPO_ROOT / "tests" / "kane"
 
@@ -32,22 +34,45 @@ class ReplayDecision:
     asset_path: Path | None
     reason: str
     description_hash: str
+    hash_source: str = "description"   # "description" | "asset"
 
     def to_dict(self) -> dict:
         return {
             "sc_id": self.sc_id,
             "requirement_id": self.requirement_id,
             "decision": self.decision,
-            "asset_path": str(self.asset_path.relative_to(REPO_ROOT)) if self.asset_path else None,
+            "asset_path": _rel(self.asset_path),
             "reason": self.reason,
             "description_hash": self.description_hash,
+            "hash_source": self.hash_source,
         }
+
+
+def _rel(path: Path | None) -> str | None:
+    """Repo-relative string when inside the repo, else as-is. An ingested
+    `kane_asset` override may legitimately resolve outside REPO_ROOT."""
+    if path is None:
+        return None
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
 
 
 def hash_description(description: str) -> str:
     """Stable short hash of an AC description. 12 hex chars is plenty for
     collision safety across a single project's requirement set."""
     normalized = re.sub(r"\s+", " ", description.strip().lower())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12]
+
+
+def hash_asset_body(text: str) -> str:
+    """Stable short hash of a Kane _test.md body, for ingested scenarios
+    (hash_source == "asset"): drift means *the test was edited*, not the AC.
+    Line endings and trailing whitespace are normalized so a CRLF checkout
+    or an editor's EOF newline does not register as drift."""
+    lines = [ln.rstrip() for ln in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+    normalized = "\n".join(lines).strip()
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12]
 
 
@@ -106,53 +131,81 @@ def decide(
     *,
     force_re_author: bool = False,
     deprecated: bool = False,
+    asset_override: Path | None = None,
+    hash_source: str = "description",
+    asset_body: str | None = None,
+    allow_record: bool = True,
 ) -> ReplayDecision:
     """Compute the replay policy decision for one scenario.
 
     Order:
-      deprecated  → skip
-      missing     → record
-      force flag  → rerecord
-      hash drift  → rerecord (description changed since asset was recorded)
-      otherwise   → replay
+      deprecated       → skip
+      override missing → skip  (reason "asset_missing"; ingested assets are never recorded)
+      missing          → record   (skip when allow_record is False)
+      force flag       → rerecord (skip when allow_record is False)
+      hash drift       → rerecord (skip when allow_record is False)
+      otherwise        → replay
+
+    asset_override: explicit `kane_asset` from scenarios.json. When set it IS
+      the asset path — `asset_path_for()` naming is not applied.
+    hash_source: "description" (legacy — hash of the AC text) or "asset"
+      (hash of the asset file body). Stored in the sidecar under the same
+      `description_hash` key, alongside `hash_source`.
+    asset_body: optional pre-read asset text for hash_source == "asset";
+      otherwise the file at the resolved asset path is read.
+    allow_record: `kaneai.auto_record`. False turns every would-be record /
+      rerecord into a skip so gaps are reported rather than filled.
     """
+    hash_source = "asset" if hash_source == "asset" else "description"
+
+    def _mk(decision: Decision, asset: Path | None, reason: str, h: str) -> ReplayDecision:
+        return ReplayDecision(
+            sc_id=sc_id, requirement_id=requirement_id, decision=decision,
+            asset_path=asset, reason=reason, description_hash=h, hash_source=hash_source,
+        )
+
+    def _gate(decision: Decision, asset: Path | None, reason: str, h: str) -> ReplayDecision:
+        """record / rerecord pass through only when recording is allowed."""
+        if decision in ("record", "rerecord") and not allow_record:
+            return _mk("skip", asset, f"auto_record disabled (would {decision}: {reason})", h)
+        return _mk(decision, asset, reason, h)
+
     desc_hash = hash_description(description)
 
     if deprecated:
-        return ReplayDecision(
-            sc_id=sc_id, requirement_id=requirement_id, decision="skip",
-            asset_path=None, reason="scenario marked deprecated", description_hash=desc_hash,
-        )
+        return _mk("skip", None, "scenario marked deprecated", desc_hash)
 
-    asset = existing_asset_path(sc_id)
-    if asset is None:
-        target = asset_path_for(sc_id, feature, title)
-        return ReplayDecision(
-            sc_id=sc_id, requirement_id=requirement_id, decision="record",
-            asset_path=target, reason="no asset on disk yet",
-            description_hash=desc_hash,
-        )
+    if asset_override is not None:
+        asset: Path | None = asset_override
+        if not asset_override.exists():
+            return _mk("skip", asset_override, "asset_missing", desc_hash)
+    else:
+        asset = existing_asset_path(sc_id)
+        if asset is None:
+            target = asset_path_for(sc_id, feature, title)
+            return _gate("record", target, "no asset on disk yet", desc_hash)
+
+    # Comparison hash: AC text (legacy) or the asset body (ingested).
+    if hash_source == "asset":
+        body = asset_body
+        if body is None:
+            try:
+                body = asset.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                body = ""
+        current_hash = hash_asset_body(body)
+    else:
+        current_hash = desc_hash
 
     if force_re_author:
-        return ReplayDecision(
-            sc_id=sc_id, requirement_id=requirement_id, decision="rerecord",
-            asset_path=asset, reason="FORCE_RE_AUTHOR set",
-            description_hash=desc_hash,
-        )
+        return _gate("rerecord", asset, "FORCE_RE_AUTHOR set", current_hash)
 
     recorded_hash = read_asset_hash(asset)
-    if recorded_hash and recorded_hash != desc_hash:
-        return ReplayDecision(
-            sc_id=sc_id, requirement_id=requirement_id, decision="rerecord",
-            asset_path=asset, reason=f"description hash drifted ({recorded_hash} → {desc_hash})",
-            description_hash=desc_hash,
-        )
+    if recorded_hash and recorded_hash != current_hash:
+        label = "asset body hash" if hash_source == "asset" else "description hash"
+        return _gate("rerecord", asset, f"{label} drifted ({recorded_hash} → {current_hash})", current_hash)
 
-    return ReplayDecision(
-        sc_id=sc_id, requirement_id=requirement_id, decision="replay",
-        asset_path=asset, reason="hash matches recorded asset",
-        description_hash=desc_hash,
-    )
+    return _mk("replay", asset, "hash matches recorded asset", current_hash)
 
 
 def write_decisions_log(decisions: list[ReplayDecision], out_path: Path) -> None:
@@ -178,6 +231,8 @@ def main() -> int:
         return 1
     scenarios = json.loads(scenarios_path.read_text(encoding="utf-8"))
     force = os.environ.get("FORCE_RE_AUTHOR", "false").lower() == "true"
+    import project_config
+    allow_record = project_config.auto_record()
     decisions = []
     for sc in scenarios:
         # scenarios.json has had two key names for the AC text over time:
@@ -192,9 +247,12 @@ def main() -> int:
             title=sc.get("title", sc["id"]),
             force_re_author=force,
             deprecated=(sc.get("status") == "deprecated"),
+            asset_override=project_config.scenario_asset_path(sc),
+            hash_source="asset" if project_config.is_ingested(sc) else "description",
+            allow_record=allow_record,
         )
         decisions.append(d)
-        print(f"{d.sc_id}  {d.decision:9}  hash={d.description_hash}  {d.reason}")
+        print(f"{d.sc_id}  {d.decision:9}  hash={d.description_hash}({d.hash_source})  {d.reason}")
     out = REPO_ROOT / "reports" / "replay_decisions.json"
     write_decisions_log(decisions, out)
     print(f"\nWrote {out.relative_to(REPO_ROOT)}")

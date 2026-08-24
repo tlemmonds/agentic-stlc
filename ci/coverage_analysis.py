@@ -28,27 +28,21 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
+from project_config import (
+    classify_feature,
+    deprecated_by_requirement,
+    feature_taxonomy,
+    group_scenarios_by_requirement,
+)
 
 # ── Feature taxonomy ─────────────────────────────────────────────────────────
-# Maps feature name → keywords to detect in requirement text
-FEATURE_KEYWORDS: dict[str, list[str]] = {
-    "SEARCH":         ["search", "find product", "search bar", "search result", "search for"],
-    "CART":           ["cart", "add to cart", "shopping cart", "remove from cart",
-                       "update quantity", "cart item", "line total", "cart update"],
-    "CATALOG":        ["catalog", "laptops", "product listing", "product catalog",
-                       "browse", "category", "grid", "product grid"],
-    "FILTER":         ["filter", "manufacturer", "brand filter", "narrow", "sidebar"],
-    "PRODUCT_DETAIL": ["product detail", "detail page", "product name", "price",
-                       "thumbnail", "product page", "open a product"],
-    "GUEST":          ["guest", "without logging in", "guest browsing"],
-    "AUTH":           ["register", "log in", "login", "log out", "logout",
-                       "account", "first name", "last name", "telephone",
-                       "password", "dashboard", "registered"],
-    "CHECKOUT":       ["checkout", "shipping", "flat rate", "shipping address",
-                       "complete a guest checkout"],
-    "WISHLIST":       ["wish list", "wishlist"],
-    "SORT":           ["sort", "price low to high", "listing order"],
-}
+# Single source: agentic-stlc.config.yaml `features:` (TaskFlow fallback when
+# absent) via project_config.feature_taxonomy(). The module-level names are
+# kept as aliases so existing importers keep working.
+#   FEATURE_CRITICALITY  feature → HIGH | MEDIUM | LOW
+#   FEATURE_KEYWORDS     feature → keywords detected in requirement text
+#   EXPECTED_SCENARIOS   feature → expected scenario types (static risk model)
+FEATURE_CRITICALITY, FEATURE_KEYWORDS, EXPECTED_SCENARIOS = feature_taxonomy()
 
 # ── Coverage category detection keywords ─────────────────────────────────────
 _NEGATIVE_KEYWORDS = frozenset([
@@ -68,78 +62,6 @@ _SECURITY_KEYWORDS = frozenset([
 _MOBILE_BROWSERS = frozenset(["android", "ios", "safari_mobile", "mobile"])
 _ANDROID_BROWSERS = frozenset(["android"])
 
-# ── Business criticality ──────────────────────────────────────────────────────
-FEATURE_CRITICALITY: dict[str, str] = {
-    "AUTH":           "HIGH",
-    "CHECKOUT":       "HIGH",
-    "CART":           "HIGH",
-    "SEARCH":         "MEDIUM",
-    "CATALOG":        "MEDIUM",
-    "PRODUCT_DETAIL": "MEDIUM",
-    "FILTER":         "LOW",
-    "SORT":           "LOW",
-    "WISHLIST":       "LOW",
-    "GUEST":          "LOW",
-}
-
-# ── Expected scenario types per feature (static risk model) ──────────────────
-# Drives gap detection: which scenario types SHOULD exist but don't
-EXPECTED_SCENARIOS: dict[str, list[dict]] = {
-    "CART": [
-        {"type": "happy_path", "description": "Add product to cart and see count update"},
-        {"type": "happy_path", "description": "View cart with added items"},
-        {"type": "happy_path", "description": "Remove item from cart"},
-        {"type": "happy_path", "description": "Update item quantity and verify line total"},
-        {"type": "negative",   "description": "Attempt to add out-of-stock product"},
-        {"type": "edge_case",  "description": "View empty cart state"},
-        {"type": "edge_case",  "description": "Cart persistence after page reload"},
-    ],
-    "SEARCH": [
-        {"type": "happy_path", "description": "Search by product name and see results"},
-        {"type": "negative",   "description": "Search with a term that returns no results"},
-        {"type": "edge_case",  "description": "Search with special characters"},
-        {"type": "edge_case",  "description": "Search with empty string"},
-    ],
-    "CATALOG": [
-        {"type": "happy_path", "description": "Browse product category/catalog page"},
-        {"type": "happy_path", "description": "View product grid layout"},
-        {"type": "negative",   "description": "Visit category with no products"},
-    ],
-    "FILTER": [
-        {"type": "happy_path", "description": "Apply manufacturer filter from sidebar"},
-        {"type": "negative",   "description": "Apply filter that produces no results"},
-    ],
-    "PRODUCT_DETAIL": [
-        {"type": "happy_path", "description": "View product detail page with name and price"},
-        {"type": "happy_path", "description": "View product images gallery"},
-    ],
-    "GUEST": [
-        {"type": "happy_path", "description": "Browse site as guest without login"},
-    ],
-    "AUTH": [
-        {"type": "happy_path", "description": "Register new account with all fields"},
-        {"type": "happy_path", "description": "Login with valid credentials and reach dashboard"},
-        {"type": "happy_path", "description": "Logout and redirect to home page"},
-        {"type": "negative",   "description": "Login with invalid credentials"},
-        {"type": "negative",   "description": "Register with already-used email"},
-        {"type": "edge_case",  "description": "Password strength validation"},
-    ],
-    "CHECKOUT": [
-        {"type": "happy_path", "description": "Complete guest checkout with shipping address"},
-        {"type": "negative",   "description": "Checkout with invalid shipping address"},
-        {"type": "edge_case",  "description": "Checkout with empty cart"},
-    ],
-    "WISHLIST": [
-        {"type": "happy_path", "description": "Add product to wishlist from detail page"},
-        {"type": "happy_path", "description": "View wishlist items"},
-        {"type": "negative",   "description": "Add duplicate product to wishlist"},
-    ],
-    "SORT": [
-        {"type": "happy_path", "description": "Sort products by price low to high"},
-        {"type": "happy_path", "description": "Verify listing order changes after sort"},
-    ],
-}
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -153,15 +75,10 @@ def _load_json(path: str, default):
         return default
 
 
-def _classify_feature(text: str) -> str:
-    """Pick the best-matching feature for a requirement based on keyword density."""
-    text_lower = text.lower()
-    best_feature, best_count = "GENERAL", 0
-    for feature, keywords in FEATURE_KEYWORDS.items():
-        count = sum(1 for kw in keywords if kw in text_lower)
-        if count > best_count:
-            best_count, best_feature = count, feature
-    return best_feature
+def _classify_feature(text: str, explicit: str | None = None) -> str:
+    """Feature for a requirement: the explicit scenario feature wins; otherwise
+    keyword classification of the requirement text (project_config)."""
+    return classify_feature(text, explicit=explicit)
 
 
 def _compute_risk_level(
@@ -254,14 +171,9 @@ def analyze(
     normalized_raw   = _load_json(normalized_path, {})
     normalized       = normalized_raw.get("results", [])
 
-    # Build lookup tables
-    scenarios_by_req: dict[str, list[dict]] = {}
-    deprecated_by_req: dict[str, list[dict]] = {}
-    for sc in scenarios:
-        if sc.get("status") == "deprecated":
-            deprecated_by_req.setdefault(sc.get("requirement_id", ""), []).append(sc)
-        else:
-            scenarios_by_req.setdefault(sc.get("requirement_id", ""), []).append(sc)
+    # Build lookup tables — requirement_id → [scenario, ...] (many-to-one)
+    scenarios_by_req  = group_scenarios_by_requirement(scenarios)
+    deprecated_by_req = deprecated_by_requirement(scenarios)
 
     results_by_sc: dict[str, list[dict]] = {}
     for r in normalized:
@@ -279,10 +191,15 @@ def analyze(
         req_id      = req.get("id", "")
         description = req.get("description", "")
         kane_status = req.get("kane_status", "unknown")
-        feature     = _classify_feature(description)
 
         mapped_scenarios = scenarios_by_req.get(req_id, [])
         sc_ids = [s["id"] for s in mapped_scenarios]
+
+        # Explicit feature from the first mapped scenario (ingested assets
+        # carry one); generated 1:1 scenarios don't, so fall back to keyword
+        # classification of the requirement text.
+        first_sc = mapped_scenarios[0] if mapped_scenarios else (deprecated_by_req.get(req_id) or [{}])[0]
+        feature  = _classify_feature(description, explicit=first_sc.get("feature"))
 
         # Deprecated tombstone: the AC line is still in taskflow.txt but its
         # only scenario was tombstoned by a release_diff DELETE op (v1.1.0
@@ -451,11 +368,14 @@ def analyze(
             })
 
     total = len(requirements)
-
-    def _pct(n: int) -> float:
-        return round(n / total * 100, 1) if total else 0.0
-
     deprecated_count = sum(1 for r in coverage_records if r["coverage_status"] == "DEPRECATED")
+    live_total = total - deprecated_count
+
+    # Percentages are computed against the LIVE requirement population
+    # (deprecated tombstones are intentional, not coverage gaps — including
+    # them in the denominator makes a clean release look incomplete).
+    def _pct(n: int) -> float:
+        return round(n / live_total * 100, 1) if live_total else 0.0
     summary = {
         "total_requirements":   total,
         "deprecated":           deprecated_count,
@@ -546,6 +466,7 @@ def _write_markdown(records: list, summary: dict, feature_rollup: dict) -> None:
         "| Metric | Value |",
         "|--------|-------|",
         f"| Total Requirements | {summary['total_requirements']} |",
+        f"| Deprecated (excluded from %) | {summary['deprecated']} |",
         f"| Fully Covered | {summary['covered_full']} ({summary['coverage_pct']}%) |",
         f"| Partially Covered | {summary['covered_partial']} |",
         f"| Uncovered | {summary['uncovered']} |",

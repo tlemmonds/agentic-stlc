@@ -66,6 +66,24 @@ def build_payload() -> dict:
     passed   = trac_summary.get("passed", 0)
     failed   = executed - passed if executed > passed else 0
 
+    # Many-to-one: uncovered requirements (no scenario). Prefer the verdict
+    # JSON; fall back to the traceability summary, then to the roll-up list.
+    trac_reqs = trac.get("requirements", []) or []
+    req_uncovered = rec.get(
+        "requirements_uncovered",
+        trac_summary.get(
+            "requirements_uncovered",
+            sum(
+                1 for q in trac_reqs
+                if isinstance(q, dict) and not q.get("scenario_ids") and q.get("overall") != "deprecated"
+            ),
+        ),
+    )
+    scenarios_total = trac_summary.get(
+        "scenarios_total",
+        sum(len(q.get("scenario_ids", [])) for q in trac_reqs if isinstance(q, dict)) or executed,
+    )
+
     tests_total  = junit.get("tests", executed)
     tests_failed = junit.get("failures", 0) + junit.get("errors", 0)
     tests_passed = tests_total - tests_failed
@@ -95,6 +113,13 @@ def build_payload() -> dict:
         "pass_rate":            pass_rate,
         "requirements_total":   req_total,
         "requirements_covered": req_covered,
+        "requirements_uncovered": int(req_uncovered or 0),
+        "scenarios": {
+            "total":    int(scenarios_total or 0),
+            "executed": int(executed or 0),
+            "passed":   int(passed or 0),
+            "failed":   int(failed or 0),
+        },
         "tests_total":          tests_total,
         "tests_passed":         tests_passed,
         "tests_failed":         tests_failed,

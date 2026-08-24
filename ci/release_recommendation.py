@@ -53,6 +53,13 @@ def main():
 
     failing = summary.get("failing_scenarios", [])
     untested = summary.get("untested_requirements", [])
+    # Many-to-one: requirement roll-up list (absent on legacy matrices).
+    requirements = payload.get("requirements", []) or []
+    uncovered = [
+        q.get("requirement_id", "?")
+        for q in requirements
+        if isinstance(q, dict) and not q.get("scenario_ids") and q.get("overall") != "deprecated"
+    ]
 
     lines = [
         "# QA Release Recommendation",
@@ -75,6 +82,9 @@ def main():
     lines.extend([f"- {item}" for item in failing] if failing else ["- None"])
     lines.extend(["", "## Untested Requirements"])
     lines.extend([f"- {item}" for item in untested] if untested else ["- None"])
+    if uncovered:
+        lines.extend(["", "## Uncovered requirements (no scenario)"])
+        lines.extend([f"- {item}" for item in uncovered])
 
     key_findings = result_analysis.get("key_findings", [])
     if key_findings:
@@ -97,6 +107,9 @@ def main():
         "pass_rate":              summary.get("pass_rate", 0),
         "requirements_covered":   summary.get("requirements_covered", 0),
         "requirements_total":     summary.get("requirements_total", 0),
+        "requirements_uncovered": len(uncovered),
+        "uncovered_requirements": uncovered,
+        "scenarios_total":        summary.get("scenarios_total", summary.get("executed", 0)),
         "executed":               summary.get("executed", 0),
         "passed":                 summary.get("passed", 0),
         "failing_scenarios":      failing,
@@ -112,6 +125,7 @@ def main():
         "Executed":     summary.get("executed", 0),
         "Failing":      len(failing),
         "Untested":     len(untested),
+        "Uncovered":    len(uncovered),
         "Output":       args.out,
     })
     print(f"\n  → {verdict}: {recommendation}")

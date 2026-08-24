@@ -1,10 +1,10 @@
 """Agentic Release Notes — Stage 0.
 
 Given the most recent release lock (`release_notes/<prev>.lock.json`,
-which is a frozen scenarios.json snapshot from the last shipped release)
-and a new release-notes markdown file (`release_notes/<next>.md`),
-produce an Add / Edit / Delete operations list against the current test
-pool.
+a frozen snapshot of the requirement list + scenarios.json from the last
+shipped release) and a new release-notes markdown file
+(`release_notes/<next>.md`), produce an Add / Edit / Delete operations
+list against the current test pool.
 
 Two modes:
 
@@ -19,39 +19,54 @@ Two modes:
 
 Decision algorithm (pure rules, deterministic):
 
-    Section "Added"   → ADD    : always create a new AC + scenario.
-    Section "Changed" → EDIT   : match release item text to existing scenario
-                                 by token Jaccard similarity (default ≥ 0.5).
-                                 No match → unmatched_items[].
-    Section "Removed" → DELETE : same matching, marks scenario deprecated.
-    Section "Fixed"   → noted only; no scenario op (bug fixes get
-                                 covered by the existing replay run; if a
-                                 fix changes user-visible behavior the
-                                 author should also list it under Changed).
+    Section "Added"   → ADD    : always create a new AC. A scenario is
+                                 created only when `scenarios.auto_create`
+                                 is true (default) — see docs/MANY_TO_ONE.md.
+    Section "Changed" → EDIT   : match release item text to an existing
+                                 REQUIREMENT by token Jaccard similarity
+                                 (default ≥ 0.5). No match → unmatched_items[].
+    Section "Removed" → DELETE : same matching; marks EVERY scenario of the
+                                 requirement deprecated (never deleted).
+    Section "Fixed"   → noted only; no scenario op.
+
+Many-to-one (docs/MANY_TO_ONE.md): a requirement may be covered by several
+scenarios. Ops carry `requirement_id` + `sc_ids` (all scenarios of that
+requirement); `sc_id` is kept as the first id for legacy renderers.
+
+Lock schema (new):
+    {"release", "generated_at", "requirements": [{"id","brd_ref","description"}],
+     "scenarios": [...]}
+Legacy locks (scenarios only) are still read: matching then falls back to
+scenario descriptions and the requirement list is derived from them.
 
 Match threshold is conservative on purpose: it's better to surface an
 "unmatched" warning to the author than to silently retitle the wrong
-scenario.
+requirement.
 """
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
-from release_notes_parser import parse_file, parse_version_from_filename, ReleaseItem
+from release_notes_parser import parse_file, parse_version_from_filename
 from stage_utils import print_stage_header, print_stage_result
+from project_config import (
+    auto_create_scenarios,
+    cfg,
+    group_scenarios_by_requirement,
+    is_ingested,
+)
 
 REPO_ROOT      = Path(__file__).resolve().parent.parent
 RELEASE_DIR    = REPO_ROOT / "release_notes"
 SCENARIOS_PATH = REPO_ROOT / "scenarios" / "scenarios.json"
+ANALYZED_REQS  = REPO_ROOT / "requirements" / "analyzed_requirements.json"
 DELTA_JSON     = REPO_ROOT / "reports" / "release_delta.json"
 DELTA_MD       = REPO_ROOT / "reports" / "release_delta.md"
 
@@ -92,11 +107,12 @@ class Operation:
     item_text: str
     item_section: str
     issue: str | None
-    sc_id: str | None     # populated for EDIT/DELETE
+    sc_id: str | None     # first scenario of the requirement (legacy renderers)
     requirement_id: str | None
     match_score: float    # 0.0 for ADD; jaccard for EDIT/DELETE
     rationale: str
     prev_text: str | None = None  # the previous-release description; populated for EDIT/DELETE
+    sc_ids: list[str] = field(default_factory=list)  # every scenario of the requirement
 
     def to_dict(self) -> dict:
         return {
@@ -105,6 +121,7 @@ class Operation:
             "item_section": self.item_section,
             "issue": self.issue,
             "sc_id": self.sc_id,
+            "sc_ids": list(self.sc_ids),
             "requirement_id": self.requirement_id,
             "match_score": round(self.match_score, 3),
             "rationale": self.rationale,
@@ -190,40 +207,160 @@ def resolve_release_pair(target: Path | None = None) -> tuple[Path, Path | None]
     return notes_path, (prev_locks[-1] if prev_locks else None)
 
 
-def _load_scenarios_for_diff(prev_lock: Path | None) -> tuple[list[dict], str]:
-    """Return (scenarios_list, source_label).
+def _rel(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _description_of(scenario: dict) -> str:
+    return scenario.get("description") or scenario.get("source_description") or scenario.get("title") or ""
+
+
+def _ac_num(rid: str | None) -> int:
+    m = re.match(r"AC-(\d+)", str(rid or ""))
+    return int(m.group(1)) if m else 0
+
+
+def _requirements_from_scenarios(scenarios: list[dict]) -> list[dict]:
+    """Legacy lock / no lock: derive the requirement list from the scenario
+    pool. Description = first non-deprecated scenario's description (falls
+    back to the first scenario when all are deprecated)."""
+    grouped = group_scenarios_by_requirement(scenarios, include_deprecated=True)
+    out: list[dict] = []
+    for rid, scs in grouped.items():
+        live = [s for s in scs if s.get("status") != "deprecated"]
+        rep = (live or scs)[0]
+        rec = {"id": rid, "brd_ref": rep.get("brd_ref"), "description": _description_of(rep)}
+        if not live:
+            rec["status"] = "deprecated"
+        out.append(rec)
+    return sorted(out, key=lambda r: _ac_num(r["id"]))
+
+
+def _parse_requirements_txt(paths: list[Path]) -> list[dict]:
+    """Minimal parser for the `requirements.paths` .txt files: lines under
+    "Acceptance Criteria:"; an optional leading `[REF]` token becomes
+    `brd_ref`. Ids are sequential AC-NNN across all files."""
+    out: list[dict] = []
+    ref_re = re.compile(r"^\[([^\]]+)\]\s*(.*)$")
+    for path in paths:
+        if not path.exists():
+            continue
+        in_ac = False
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not in_ac:
+                if line.lower().startswith("acceptance criteria"):
+                    in_ac = True
+                continue
+            if not line:
+                continue
+            if line.endswith(":") and not line.startswith(("-", "*", "[")):
+                break  # next section header
+            line = re.sub(r"^[-*•]\s*", "", line)
+            brd_ref = None
+            m = ref_re.match(line)
+            if m:
+                brd_ref, line = m.group(1).strip(), m.group(2).strip()
+            if not line:
+                continue
+            out.append({"id": f"AC-{len(out) + 1:03d}", "brd_ref": brd_ref, "description": line})
+    return out
+
+
+def current_requirements() -> list[dict]:
+    """The requirement list for the CURRENT release:
+    requirements/analyzed_requirements.json when present (Stage 1 output),
+    else the `requirements.paths` .txt files from agentic-stlc.config.yaml."""
+    if ANALYZED_REQS.exists():
+        try:
+            data = json.loads(ANALYZED_REQS.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            data = []
+        if isinstance(data, list) and data:
+            return [
+                {"id": r.get("id"), "brd_ref": r.get("brd_ref"), "description": r.get("description", "")}
+                for r in data if isinstance(r, dict) and r.get("id")
+            ]
+    paths = cfg("requirements.paths") or []
+    if isinstance(paths, str):
+        paths = [paths]
+    return _parse_requirements_txt([REPO_ROOT / p for p in paths])
+
+
+def _load_lock_for_diff(prev_lock: Path | None) -> tuple[list[dict], list[dict], bool, str]:
+    """Return (requirements, scenarios, lock_has_requirements, source_label).
 
     If a prev_lock is supplied it's the canonical R(n-1) snapshot; otherwise
-    we fall back to the current scenarios.json (first-release case)."""
+    we fall back to the current scenarios.json (first-release case). Legacy
+    locks (scenarios only) get a requirement list derived from the scenarios."""
     if prev_lock is not None and prev_lock.exists():
         data = json.loads(prev_lock.read_text(encoding="utf-8"))
-        return data.get("scenarios", []), str(prev_lock.relative_to(REPO_ROOT))
+        scenarios = data.get("scenarios", []) or []
+        reqs = data.get("requirements")
+        if isinstance(reqs, list) and reqs:
+            return reqs, scenarios, True, _rel(prev_lock)
+        return _requirements_from_scenarios(scenarios), scenarios, False, _rel(prev_lock)
     if SCENARIOS_PATH.exists():
-        return json.loads(SCENARIOS_PATH.read_text(encoding="utf-8")), str(SCENARIOS_PATH.relative_to(REPO_ROOT))
-    return [], "<empty>"
+        scenarios = json.loads(SCENARIOS_PATH.read_text(encoding="utf-8"))
+        return _requirements_from_scenarios(scenarios), scenarios, False, _rel(SCENARIOS_PATH)
+    return [], [], False, "<empty>"
 
 
 # ── Matching + diff ────────────────────────────────────────────────────────
-def _description_of(scenario: dict) -> str:
-    return scenario.get("description") or scenario.get("source_description") or scenario.get("title") or ""
+def _match_candidates(requirements: list[dict], scenarios: list[dict], lock_has_requirements: bool) -> list[dict]:
+    """One candidate per matchable unit: {"text", "requirement_id", "sc_ids"}.
+    New locks → one per non-deprecated requirement (text = requirement
+    description). Legacy locks → one per non-deprecated scenario (text =
+    scenario description), exactly as before; sc_ids still expands to every
+    live scenario of that requirement."""
+    grouped = group_scenarios_by_requirement(scenarios, include_deprecated=False)
+    live_ids = {rid: [s.get("id") for s in scs] for rid, scs in grouped.items()}
+    if lock_has_requirements:
+        out = []
+        for r in requirements:
+            rid = r.get("id")
+            if not rid or r.get("status") == "deprecated":
+                continue
+            all_scs = [s for s in scenarios if s.get("requirement_id") == rid]
+            if all_scs and not live_ids.get(rid):
+                continue  # every scenario deprecated → requirement retired
+            out.append({"text": r.get("description", ""), "requirement_id": rid,
+                        "sc_ids": list(live_ids.get(rid, []))})
+        return out
+    return [
+        {"text": _description_of(s), "requirement_id": s.get("requirement_id"),
+         "sc_ids": list(live_ids.get(s.get("requirement_id"), [s.get("id")]))}
+        for s in scenarios if s.get("status") != "deprecated"
+    ]
+
+
+_REF_TOKEN = re.compile(r"^\[([A-Za-z0-9._-]+)\]\s*")
+
+
+def _split_ref(text: str) -> tuple[str | None, str]:
+    """'[AC-02] Cash-advance …' → ('AC-02', 'Cash-advance …'); no token → (None, text)."""
+    m = _REF_TOKEN.match(text or "")
+    return (m.group(1), text[m.end():].strip()) if m else (None, (text or "").strip())
 
 
 def _best_match(item_text: str, candidates: list[dict], threshold: float) -> tuple[dict | None, float]:
     best: dict | None = None
     best_score = 0.0
     for c in candidates:
-        score = jaccard(item_text, _description_of(c))
+        score = jaccard(item_text, c["text"])
         if score > best_score:
             best, best_score = c, score
     return (best, best_score) if best_score >= threshold else (None, best_score)
 
 
-def _next_ac_id(scenarios: list[dict]) -> str:
-    max_n = 0
-    for sc in scenarios:
-        m = re.match(r"AC-(\d+)", sc.get("requirement_id", ""))
-        if m:
-            max_n = max(max_n, int(m.group(1)))
+def _next_ac_id(requirements: list[dict], scenarios: list[dict]) -> str:
+    max_n = max(
+        [_ac_num(r.get("id")) for r in requirements] + [_ac_num(s.get("requirement_id")) for s in scenarios],
+        default=0,
+    )
     return f"AC-{max_n + 1:03d}"
 
 
@@ -234,11 +371,10 @@ def diff(
     threshold: float = DEFAULT_MATCH_THRESHOLD,
 ) -> DiffResult:
     items = parse_file(notes_path)
-    prev_scenarios, source_label = _load_scenarios_for_diff(prev_lock)
+    prev_reqs, prev_scenarios, has_reqs, source_label = _load_lock_for_diff(prev_lock)
 
-    next_ac_index = int(_next_ac_id(prev_scenarios).split("-")[1])
-    deletion_targets = [s for s in prev_scenarios if s.get("status") != "deprecated"]
-    edit_targets = list(deletion_targets)  # same pool; matched scenarios excluded as we go
+    next_ac_index = int(_next_ac_id(prev_reqs, prev_scenarios).split("-")[1])
+    targets = _match_candidates(prev_reqs, prev_scenarios, has_reqs)  # matched units removed as we go
 
     result = DiffResult(
         from_release=Path(source_label).stem.replace(".lock", "") if prev_lock else "<initial>",
@@ -248,79 +384,170 @@ def diff(
         threshold=threshold,
     )
 
+    # ADD binding: a bullet that already corresponds to a requirement in the
+    # current requirements source (by [REF] → brd_ref, else Jaccard) binds to
+    # that requirement instead of allocating a new id. This is the first-release
+    # / ingest path: the BRD ACs and the release notes describe the same set.
+    # Only requirements recorded in an actual previous lock are un-bindable;
+    # on a first release prev_reqs is derived from scenarios.json and every
+    # current requirement is fair game.
+    prev_ids = {r.get("id") for r in prev_reqs} if prev_lock is not None else set()
+    bindable = [r for r in current_requirements() if r.get("id") and r["id"] not in prev_ids]
+    bound_ids: set[str] = set()
+    try:
+        current_scenarios = json.loads(SCENARIOS_PATH.read_text(encoding="utf-8")) if SCENARIOS_PATH.exists() else []
+    except (OSError, json.JSONDecodeError):
+        current_scenarios = []
+
+    def _bind_add(text: str) -> tuple[dict | None, str, float]:
+        ref, body = _split_ref(text)
+        if ref:
+            for r in bindable:
+                if r["id"] not in bound_ids and (r.get("brd_ref") or "").lower() == ref.lower():
+                    return r, body, 1.0
+        best, score = None, 0.0
+        for r in bindable:
+            if r["id"] in bound_ids:
+                continue
+            sc = jaccard(body, r.get("description", ""))
+            if sc > score:
+                best, score = r, sc
+        return (best, body, score) if best is not None and score >= threshold else (None, body, score)
+
     for item in items:
         if item.section == "Added":
+            bound, body, score = _bind_add(item.text)
+            if bound is not None:
+                bound_ids.add(bound["id"])
+                sc_ids = [s["id"] for s in current_scenarios
+                          if s.get("requirement_id") == bound["id"] and s.get("status") != "deprecated"]
+                result.operations.append(Operation(
+                    op="ADD", item_text=body, item_section=item.section,
+                    issue=item.issue, sc_id=(sc_ids[0] if sc_ids else None), requirement_id=bound["id"],
+                    sc_ids=sc_ids, match_score=round(score, 3),
+                    rationale=(f"binds existing requirement {bound['id']} ({bound.get('brd_ref') or 'no ref'}) — "
+                               + (f"{len(sc_ids)} scenario(s) already mapped" if sc_ids else "no scenario yet (uncovered)")),
+                ))
+                continue
             ac_id = f"AC-{next_ac_index:03d}"
             next_ac_index += 1
             result.operations.append(Operation(
-                op="ADD", item_text=item.text, item_section=item.section,
+                op="ADD", item_text=body, item_section=item.section,
                 issue=item.issue, sc_id=None, requirement_id=ac_id,
                 match_score=0.0,
-                rationale=f"new requirement; will allocate {ac_id} and let Stage 1 record the asset",
+                rationale=(f"new requirement; will allocate {ac_id} and let Stage 1 record the asset"
+                           if auto_create_scenarios() else
+                           f"new requirement; will allocate {ac_id} (scenarios.auto_create=false → left uncovered)"),
             ))
-        elif item.section == "Changed":
-            best, score = _best_match(item.text, edit_targets, threshold)
+        elif item.section in ("Changed", "Removed"):
+            best, score = _best_match(item.text, targets, threshold)
             if best is None:
                 result.unmatched_items.append({
                     "section": item.section, "text": item.text, "issue": item.issue,
                     "best_score": round(score, 3),
-                    "reason": f"no scenario cleared similarity threshold {threshold}",
+                    "reason": f"no requirement cleared similarity threshold {threshold}",
                 })
                 continue
-            edit_targets.remove(best)
-            # Capture the v(prev) text so the Stage 0 summary can render
-            # before → after for the EDIT op. Both schemas seen in locks:
-            # `description` (current) and `source_description` (legacy).
-            prev_text = best.get("description") or best.get("source_description")
+            # The whole requirement is consumed: remove every candidate for it.
+            targets[:] = [c for c in targets if c["requirement_id"] != best["requirement_id"]]
+            sc_ids = [i for i in best["sc_ids"] if i]
+            n = len(sc_ids)
+            if item.section == "Changed":
+                op, rationale = "EDIT", (
+                    f"matched requirement on description similarity ({score:.2f}); EDIT will rewrite the "
+                    f"requirement text and flag {n} scenario(s) review_required (generated scenarios re-record; "
+                    f"ingested assets are never auto-rerecorded)")
+            else:
+                op, rationale = "DELETE", (
+                    f"matched requirement on description similarity ({score:.2f}); will mark "
+                    f"{n} scenario(s) deprecated (assets preserved)")
             result.operations.append(Operation(
-                op="EDIT", item_text=item.text, item_section=item.section,
-                issue=item.issue, sc_id=best.get("id"), requirement_id=best.get("requirement_id"),
-                match_score=score,
-                rationale=f"matched on description similarity ({score:.2f}); EDIT will rewrite description and invalidate description_hash so Stage 1 re-records the asset",
-                prev_text=prev_text,
-            ))
-        elif item.section == "Removed":
-            best, score = _best_match(item.text, edit_targets, threshold)
-            if best is None:
-                result.unmatched_items.append({
-                    "section": item.section, "text": item.text, "issue": item.issue,
-                    "best_score": round(score, 3),
-                    "reason": f"no scenario cleared similarity threshold {threshold}",
-                })
-                continue
-            edit_targets.remove(best)
-            prev_text = best.get("description") or best.get("source_description")
-            result.operations.append(Operation(
-                op="DELETE", item_text=item.text, item_section=item.section,
-                issue=item.issue, sc_id=best.get("id"), requirement_id=best.get("requirement_id"),
-                match_score=score,
-                rationale=f"matched on description similarity ({score:.2f}); will mark scenario deprecated (asset preserved)",
-                prev_text=prev_text,
+                op=op, item_text=item.text, item_section=item.section,
+                issue=item.issue, sc_id=(sc_ids[0] if sc_ids else None),
+                requirement_id=best["requirement_id"], match_score=score,
+                rationale=rationale, prev_text=best["text"] or None, sc_ids=sc_ids,
             ))
         # Fixed / Deprecated / Security: noted in markdown but no scenario op.
     return result
 
 
 # ── Application ────────────────────────────────────────────────────────────
-def apply(result: DiffResult) -> dict:
+def _requirements_for_lock(prev_lock: Path | None, scenarios: list[dict]) -> list[dict]:
+    """Base requirement list for the new lock: previous lock entries (win on
+    description/status) merged with the current release source
+    (analyzed_requirements.json / .txt), plus any requirement referenced
+    only by a scenario."""
+    prev_reqs, _, has_reqs, _ = _load_lock_for_diff(prev_lock)
+    merged: dict[str, dict] = {}
+    for r in (prev_reqs if has_reqs else []):
+        if r.get("id"):
+            merged[r["id"]] = dict(r)
+    for r in current_requirements():
+        rid = r.get("id")
+        if not rid:
+            continue
+        if rid in merged:
+            if not merged[rid].get("brd_ref") and r.get("brd_ref"):
+                merged[rid]["brd_ref"] = r["brd_ref"]
+            if not merged[rid].get("description"):
+                merged[rid]["description"] = r.get("description", "")
+        else:
+            merged[rid] = {"id": rid, "brd_ref": r.get("brd_ref"), "description": r.get("description", "")}
+    for r in _requirements_from_scenarios(scenarios):
+        merged.setdefault(r["id"], r)
+    return sorted(merged.values(), key=lambda r: _ac_num(r["id"]))
+
+
+def apply(result: DiffResult, prev_lock: Path | None = None) -> dict:
     """Mutate scenarios.json per the operations list and write the new lock."""
     scenarios = json.loads(SCENARIOS_PATH.read_text(encoding="utf-8"))
-    by_id = {s["id"]: s for s in scenarios}
     today = datetime.now(timezone.utc).date().isoformat()
-    summary = {"ADD": 0, "EDIT": 0, "DELETE": 0}
+    summary = {"ADD": 0, "EDIT": 0, "DELETE": 0, "SCENARIOS_CREATED": 0,
+               "SCENARIOS_FLAGGED": 0, "SCENARIOS_DEPRECATED": 0, "UNCOVERED": 0}
+    requirements = _requirements_for_lock(prev_lock, scenarios)
+    req_by_id = {r["id"]: r for r in requirements}
     next_sc_n = max(
         (int(re.match(r"SC-(\d+)", s["id"]).group(1))  # type: ignore[union-attr]
          for s in scenarios if re.match(r"SC-\d+", s["id"])),
         default=0,
     ) + 1
+
+    def _scenarios_of(op: Operation) -> list[dict]:
+        wanted = set(op.sc_ids)
+        return [s for s in scenarios
+                if s.get("requirement_id") == op.requirement_id or s.get("id") in wanted]
+
+    def _ensure_req(op: Operation) -> dict:
+        req = req_by_id.get(op.requirement_id)
+        if req is None:
+            req = {"id": op.requirement_id, "brd_ref": None, "description": op.item_text}
+            requirements.append(req)
+            req_by_id[op.requirement_id] = req
+        return req
+
     for op in result.operations:
         if op.op == "ADD":
+            existed = op.requirement_id in req_by_id
+            req = _ensure_req(op)
+            if not existed or not req.get("description"):
+                req["description"] = op.item_text
+            req.pop("status", None)
+            req["added_in_release"] = result.to_release
+            summary["ADD"] += 1
+            if _scenarios_of(op):
+                # Bound to a requirement that already has scenarios (ingested baseline) — nothing to create.
+                continue
+            if not auto_create_scenarios():
+                print(f"[release_diff] {op.requirement_id}: scenarios.auto_create=false — requirement left uncovered")
+                summary["UNCOVERED"] += 1
+                continue
             sc_id = f"SC-{next_sc_n:03d}"
             next_sc_n += 1
             scenarios.append({
                 "id": sc_id,
                 "test_case_id": sc_id.replace("SC-", "TC-"),
                 "requirement_id": op.requirement_id,
+                "brd_ref": req.get("brd_ref"),
                 "title": op.item_text[:80],
                 "description": op.item_text,
                 "feature": "general",
@@ -330,36 +557,58 @@ def apply(result: DiffResult) -> dict:
                 "added_at": today,
                 "issue": op.issue,
             })
-            summary["ADD"] += 1
-        elif op.op == "EDIT" and op.sc_id and op.sc_id in by_id:
-            sc = by_id[op.sc_id]
-            sc["description"] = op.item_text
-            sc["source_description"] = op.item_text
-            sc["status"] = "updated"
-            sc["last_changed_in_release"] = result.to_release
-            sc["last_changed_at"] = today
-            if op.issue:
-                sc.setdefault("issues", []).append(op.issue)
+            summary["SCENARIOS_CREATED"] += 1
+        elif op.op == "EDIT" and op.requirement_id:
+            req = _ensure_req(op)
+            req["description"] = op.item_text
+            req["last_changed_in_release"] = result.to_release
+            for sc in _scenarios_of(op):
+                if sc.get("status") == "deprecated":
+                    continue
+                sc["review_required"] = True
+                sc["review_reason"] = f"requirement {op.requirement_id} changed in {result.to_release}: {op.item_text}"
+                sc["last_changed_in_release"] = result.to_release
+                sc["last_changed_at"] = today
+                if op.issue:
+                    sc.setdefault("issues", []).append(op.issue)
+                if not is_ingested(sc):
+                    # Generated scenario: rewrite the description so the
+                    # replay policy's hash drifts and Stage 1 re-records.
+                    # Ingested assets are never auto-rerecorded.
+                    sc["description"] = op.item_text
+                    sc["source_description"] = op.item_text
+                    sc["status"] = "updated"
+                summary["SCENARIOS_FLAGGED"] += 1
             summary["EDIT"] += 1
-        elif op.op == "DELETE" and op.sc_id and op.sc_id in by_id:
-            sc = by_id[op.sc_id]
-            sc["status"] = "deprecated"
-            sc["deprecated_in_release"] = result.to_release
-            sc["deprecated_at"] = today
-            if op.issue:
-                sc.setdefault("issues", []).append(op.issue)
+        elif op.op == "DELETE" and op.requirement_id:
+            req = req_by_id.get(op.requirement_id)
+            if req is not None:
+                req["status"] = "deprecated"
+                req["deprecated_in_release"] = result.to_release
+            for sc in _scenarios_of(op):
+                if sc.get("status") == "deprecated":
+                    continue
+                sc["status"] = "deprecated"
+                sc["deprecated_in_release"] = result.to_release
+                sc["deprecated_at"] = today
+                if op.issue:
+                    sc.setdefault("issues", []).append(op.issue)
+                summary["SCENARIOS_DEPRECATED"] += 1
             summary["DELETE"] += 1
 
     SCENARIOS_PATH.write_text(json.dumps(scenarios, indent=2) + "\n", encoding="utf-8")
 
     # Write the lock file for the new release.
     lock_path = RELEASE_DIR / f"{result.to_release}.lock.json"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
     lock_path.write_text(
         json.dumps({
             "release": result.to_release,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "released_at": today,
             "from_release": result.from_release,
             "delta_summary": result.summary,
+            "requirements": requirements,
             "scenarios": scenarios,
         }, indent=2) + "\n",
         encoding="utf-8",
@@ -395,18 +644,19 @@ def write_reports(result: DiffResult, *, applied: bool, applied_summary: dict | 
         lines += [
             "## Operations",
             "",
-            "| Op | SC | Req | Issue | Score | Item |",
+            "| Op | Req | Scenarios | Issue | Score | Item |",
             "|---|---|---|---|---|---|",
         ]
         for op in result.operations:
+            scs = ", ".join(f"`{i}`" for i in op.sc_ids) or "—"
             lines.append(
-                f"| **{op.op}** | `{op.sc_id or '—'}` | `{op.requirement_id or '—'}` | "
+                f"| **{op.op}** | `{op.requirement_id or '—'}` | {scs} | "
                 f"{op.issue or '—'} | {op.match_score:.2f} | {op.item_text} |"
             )
         lines.append("")
     if result.unmatched_items:
         lines += [
-            "## Unmatched items (require manual scenario assignment)",
+            "## Unmatched items (require manual requirement assignment)",
             "",
             "| Section | Best score | Reason | Item |",
             "|---|---|---|---|",
@@ -444,8 +694,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(
-        f"[release_diff] notes={notes.relative_to(REPO_ROOT)} "
-        f"prev_lock={prev_lock.relative_to(REPO_ROOT) if prev_lock else '<none — first release>'} "
+        f"[release_diff] notes={_rel(notes)} "
+        f"prev_lock={_rel(prev_lock) if prev_lock else '<none — first release>'} "
         f"threshold={args.threshold}"
     )
 
@@ -453,7 +703,7 @@ def main(argv: list[str] | None = None) -> int:
     applied = bool(args.apply)
     applied_summary: dict | None = None
     if applied:
-        applied_summary = apply(result)
+        applied_summary = apply(result, prev_lock)
     write_reports(result, applied=applied, applied_summary=applied_summary)
 
     print_stage_result("0", "RELEASE_DIFF", {

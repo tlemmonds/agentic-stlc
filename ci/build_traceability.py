@@ -9,6 +9,13 @@ Data sources (all real, no fabrication):
   - reports/junit-*.xml / reports/junit.xml  — raw pytest results (fallback when conftest absent)
   - reports/test_execution_manifest.json     — run type (full/incremental)
 
+Many-to-one (docs/MANY_TO_ONE.md): a requirement may own several scenarios.
+  - `rows`         — ONE PER SCENARIO (plus one "n/a" row for an uncovered requirement,
+                     plus tombstone rows for deprecated scenarios).
+  - `requirements` — one per requirement: scenario ids + Kane/Playwright roll-up + overall.
+  - `summary`      — executed/passed/pass_rate are scenario-level counts over rows;
+                     requirements_covered / untested_requirements are requirement-level.
+
 When data is missing: marks as "data_unavailable". Never fabricates values.
 """
 import argparse
@@ -20,41 +27,19 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
+from project_config import (
+    classify_feature,
+    criticality_for,
+    deprecated_by_requirement,
+    group_scenarios_by_requirement,
+    rollup_kane_status,
+    rollup_playwright_status,
+)
 
-# ── Feature + coverage-category metadata (imported from coverage_analysis) ───
-_FEATURE_KEYWORDS: dict[str, list[str]] = {
-    "SEARCH":         ["search", "find product", "search bar", "search result"],
-    "CART":           ["cart", "add to cart", "shopping cart", "remove from cart",
-                       "update quantity", "cart item", "line total"],
-    "CATALOG":        ["catalog", "laptops", "product listing", "browse", "category", "grid"],
-    "FILTER":         ["filter", "manufacturer", "brand filter", "narrow", "sidebar"],
-    "PRODUCT_DETAIL": ["product detail", "detail page", "product name", "price", "thumbnail"],
-    "GUEST":          ["guest", "without logging in", "guest browsing"],
-    "AUTH":           ["register", "log in", "login", "log out", "logout",
-                       "account", "first name", "telephone", "password", "dashboard"],
-    "CHECKOUT":       ["checkout", "shipping", "flat rate", "shipping address"],
-    "WISHLIST":       ["wish list", "wishlist"],
-    "SORT":           ["sort", "price low to high", "listing order"],
-}
-_FEATURE_CRITICALITY: dict[str, str] = {
-    "AUTH": "HIGH", "CHECKOUT": "HIGH", "CART": "HIGH",
-    "SEARCH": "MEDIUM", "CATALOG": "MEDIUM", "PRODUCT_DETAIL": "MEDIUM",
-    "FILTER": "LOW", "SORT": "LOW", "WISHLIST": "LOW", "GUEST": "LOW",
-}
 _NEGATIVE_KW = frozenset(["invalid", "error", "fail", "reject", "empty", "remove",
                            "delete", "cannot", "unauthorized", "no results"])
 _EDGE_KW     = frozenset(["empty cart", "zero", "boundary", "duplicate", "persistence"])
 _MOBILE_BR   = frozenset(["android", "ios", "safari_mobile", "mobile"])
-
-
-def _classify_feature(text: str) -> str:
-    text_lower = text.lower()
-    best, best_n = "GENERAL", 0
-    for feat, kws in _FEATURE_KEYWORDS.items():
-        n = sum(1 for kw in kws if kw in text_lower)
-        if n > best_n:
-            best_n, best = n, feat
-    return best
 
 DEBUG = os.environ.get("REPORT_DEBUG", "false").lower() == "true"
 
@@ -155,38 +140,91 @@ def _browser_summary(browser_records: list, all_browsers: list) -> dict:
     return {b: by_browser.get(b, "data_unavailable") for b in all_browsers}
 
 
-def compute_result_analysis(rows, summary, all_browsers):
-    total = len(rows)
+def _kane_from(record: dict, default_status: str) -> dict:
+    return {
+        "status":    record.get("kane_status") or default_status,
+        "links":     record.get("kane_links") or [],
+        "one_liner": record.get("kane_one_liner", ""),
+        "summary":   record.get("kane_summary", ""),
+        "steps":     record.get("kane_steps") or [],
+    }
+
+
+def _kane_for_scenario(req: dict, sc_id: str) -> dict:
+    """Kane evidence for one scenario of a requirement.
+
+    Prefers the per-scenario entry in `req["scenarios"]` (many-to-one Stage 1
+    output). When that list is absent the file is a legacy 1:1 record and the
+    requirement-level fields are used. When the list is present but has no
+    entry for this scenario, the scenario has not been run by Kane.
+    """
+    entries = req.get("scenarios")
+    if isinstance(entries, list):
+        entry = next(
+            (e for e in entries if isinstance(e, dict) and e.get("scenario_id") == sc_id),
+            None,
+        )
+        if entry is None:
+            return {"status": "not_run", "links": [], "one_liner": "", "summary": "", "steps": []}
+        return _kane_from(entry, "unknown")
+    return _kane_from(req, "unknown")
+
+
+def _requirement_overall(active_rows: list) -> str:
+    """passed iff ≥1 executed, every executed scenario passed, Kane roll-up passed."""
+    executed_rows = [r for r in active_rows if r["playwright_status"] != "data_unavailable"]
+    if not executed_rows:
+        return "data_unavailable"
+    kane_rollup = rollup_kane_status(r["kane_ai_result"] for r in active_rows)
+    if kane_rollup == "passed" and all(r["overall"] == "passed" for r in executed_rows):
+        return "passed"
+    return "failed"
+
+
+def compute_result_analysis(rows, summary, all_browsers, requirements_rollup=None):
+    """Kane pass rate stays scenario-level (over rows); failed requirements and
+    key findings are keyed per requirement using the roll-up list."""
+    requirements_rollup = requirements_rollup or []
     kane_passed = sum(1 for r in rows if r.get("kane_ai_result") == "passed")
     kane_ran = sum(1 for r in rows if r.get("kane_ai_result") in ("passed", "failed"))
     kane_pass_rate = round((kane_passed / kane_ran) * 100, 1) if kane_ran else 0.0
 
     pw_pass_rate = summary.get("pass_rate", 0.0)
 
+    live_reqs = [q for q in requirements_rollup if q.get("overall") != "deprecated"]
+
     failed_reqs = sorted({
-        r["requirement_id"]
-        for r in rows
-        if r.get("kane_ai_result") == "failed" or r.get("playwright_status") == "failed"
+        q["requirement_id"]
+        for q in live_reqs
+        if q.get("kane_status") == "failed" or q.get("playwright_status") == "failed"
     })
 
     key_findings = []
-    for r in rows:
-        req_id = r["requirement_id"]
-        kane_fail = r.get("kane_ai_result") == "failed"
-        pw_fail = r.get("playwright_status") == "failed"
+    for q in live_reqs:
+        req_id = q["requirement_id"]
+        kane_fail = q.get("kane_status") == "failed"
+        pw_fail = q.get("playwright_status") == "failed"
+        n_sc = len(q.get("scenario_ids", []))
+        suffix = f" ({n_sc} scenarios)" if n_sc > 1 else ""
         if kane_fail and pw_fail:
-            key_findings.append(f"{req_id}: failed both Kane AI verification and Playwright regression.")
+            key_findings.append(f"{req_id}{suffix}: failed both Kane AI verification and Playwright regression.")
         elif kane_fail:
             key_findings.append(
-                f"{req_id}: failed Kane AI verification; Playwright status is {r.get('playwright_status', 'unknown')}."
+                f"{req_id}{suffix}: failed Kane AI verification; Playwright status is {q.get('playwright_status', 'unknown')}."
             )
         elif pw_fail:
-            key_findings.append(f"{req_id}: passed Kane AI verification but failed Playwright regression.")
+            key_findings.append(f"{req_id}{suffix}: passed Kane AI verification but failed Playwright regression.")
 
-    unavailable = [r for r in rows if r.get("playwright_status") == "data_unavailable"]
+    unavailable = [q for q in live_reqs if q.get("playwright_status") == "data_unavailable"]
     if unavailable:
         key_findings.append(
             f"{len(unavailable)} requirement(s) have no Playwright execution data (data_unavailable)."
+        )
+    uncovered = [q for q in live_reqs if not q.get("scenario_ids")]
+    if uncovered:
+        key_findings.append(
+            f"{len(uncovered)} requirement(s) have no scenario at all: "
+            + ", ".join(q["requirement_id"] for q in uncovered) + "."
         )
 
     if not key_findings:
@@ -233,11 +271,20 @@ def compute_result_analysis(rows, summary, all_browsers):
     }
 
 
+def _empty_categories() -> dict:
+    return {
+        "happy_path": False, "negative": False, "edge_case": False,
+        "mobile": False, "android": False, "he_executed": False, "regression": False,
+    }
+
+
 def main():
     args = parse_args()
     print_stage_header("7", "TRACEABILITY_REPORT", "Build requirement → scenario → test → result matrix")
     Path("reports").mkdir(exist_ok=True)
     requirements = load_json(args.requirements, [])
+    if isinstance(requirements, dict):
+        requirements = requirements.get("requirements", [])
     scenarios = load_json(args.scenarios, [])
     manifest = load_json(args.manifest, {})
 
@@ -255,31 +302,39 @@ def main():
         if t.get("name")
     }
 
-    scenarios_by_req = {s["requirement_id"]: s for s in scenarios}
+    scenarios_by_req = group_scenarios_by_requirement(scenarios)
+    deprecated_by_req = deprecated_by_requirement(scenarios)
 
     rows = []
+    requirements_out = []
     executed = 0
     passed = 0
     untested = []
     failing = []
 
     for req in requirements:
-        scenario = scenarios_by_req.get(req["id"])
-        sc_id = scenario["id"] if scenario else "n/a"
-        tc_id = scenario.get("test_case_id", "n/a") if scenario else "n/a"
-        fn_name = scenario.get("function_name", f"test_{sc_id.lower().replace('-','_')}") if scenario else ""
+        req_id = req["id"]
+        description = req.get("description", "")
+        active_scenarios = scenarios_by_req.get(req_id, [])
+        tombstones = deprecated_by_req.get(req_id, [])
+        brd_ref = req.get("brd_ref") or next(
+            (s.get("brd_ref") for s in active_scenarios + tombstones if s.get("brd_ref")), ""
+        ) or ""
 
-        # Deprecated tombstone: render the row for visibility (so the matrix
-        # documents that v1.1.0 explicitly removed delete) but exclude from
-        # executed/passed/untested counts — otherwise the missing HE result
+        # Deprecated tombstones: render the row for visibility (so the matrix
+        # documents that a release explicitly removed the behaviour) but exclude
+        # from executed/passed/untested counts — otherwise the missing HE result
         # flips the verdict to RED on every run.
-        if scenario and scenario.get("status") == "deprecated":
+        for scenario in tombstones:
+            sc_id = scenario["id"]
             rows.append({
-                "requirement_id": req["id"],
-                "acceptance_criterion": req.get("description", ""),
+                "requirement_id": req_id,
+                "brd_ref": brd_ref,
+                "acceptance_criterion": description,
                 "scenario_id": sc_id,
-                "test_case_id": tc_id,
-                "function_name": fn_name,
+                "test_case_id": scenario.get("test_case_id", "n/a"),
+                "function_name": scenario.get("function_name", f"test_{sc_id.lower().replace('-', '_')}"),
+                "source": scenario.get("source", "generated"),
                 "feature": scenario.get("feature", "general"),
                 "criticality": "DEPRECATED",
                 "coverage_categories": [],
@@ -293,93 +348,152 @@ def main():
                 "session_link": "",
                 "overall": "deprecated",
             })
+
+        # Uncovered requirement (no non-deprecated scenario): ONE "n/a" row,
+        # unless the requirement is documented purely by tombstones (as today).
+        if not active_scenarios:
+            if not tombstones:
+                kane = _kane_from(req, "not_run")
+                feature = classify_feature(description)
+                rows.append({
+                    "requirement_id": req_id,
+                    "brd_ref": brd_ref,
+                    "acceptance_criterion": description,
+                    "scenario_id": "n/a",
+                    "test_case_id": "n/a",
+                    "function_name": "",
+                    "source": "n/a",
+                    "feature": feature,
+                    "criticality": criticality_for(feature),
+                    "coverage_categories": _empty_categories(),
+                    "kane_ai_result": kane["status"],
+                    "kane_session_link": kane["links"][0] if kane["links"] else "",
+                    "kane_one_liner": kane["one_liner"],
+                    "kane_summary": kane["summary"],
+                    "kane_steps": kane["steps"],
+                    "playwright_status": "data_unavailable",
+                    "playwright_per_browser": {b: "data_unavailable" for b in all_browsers},
+                    "session_link": "",
+                    "overall": "data_unavailable",
+                })
+                untested.append(req_id)
+                req_overall = "data_unavailable"
+            else:
+                req_overall = "deprecated"
+            requirements_out.append({
+                "requirement_id": req_id,
+                "brd_ref": brd_ref,
+                "acceptance_criterion": description,
+                "scenario_ids": [],
+                "deprecated_scenario_ids": [s["id"] for s in tombstones],
+                "kane_status": rollup_kane_status([]),
+                "playwright_status": rollup_playwright_status([]),
+                "overall": req_overall,
+            })
+            _debug(f"{req_id}: no active scenario → {req_overall}")
             continue
 
-        # ── Playwright results (multi-browser) ───────────────────────────────
-        browser_records = normalized_by_sc.get(sc_id, [])
+        req_rows = []
+        for scenario in active_scenarios:
+            sc_id = scenario["id"]
+            tc_id = scenario.get("test_case_id", "n/a")
+            fn_name = scenario.get("function_name", f"test_{sc_id.lower().replace('-', '_')}")
 
-        if not browser_records and fn_name and fn_name in junit_fallback:
-            # Fallback: build a synthetic-free record from junit only
-            jdata = junit_fallback[fn_name]
-            browser_records = [{
-                "scenario_id": sc_id,
-                "browser": "chrome",
-                "status": jdata["status"],
-                "duration_ms": jdata["duration_ms"],
-                "session_link": he_task_links.get(fn_name, ""),
-                "source": "junit",
-            }]
+            # ── Playwright results (multi-browser) ───────────────────────────
+            browser_records = normalized_by_sc.get(sc_id, [])
 
-        playwright_overall = _overall_status(browser_records)
-        per_browser = _browser_summary(browser_records, all_browsers)
+            if not browser_records and fn_name and fn_name in junit_fallback:
+                jdata = junit_fallback[fn_name]
+                browser_records = [{
+                    "scenario_id": sc_id,
+                    "browser": "chrome",
+                    "status": jdata["status"],
+                    "duration_ms": jdata["duration_ms"],
+                    "session_link": he_task_links.get(fn_name, ""),
+                    "source": "junit",
+                }]
 
-        # Best session link across browsers
-        session_link = next(
-            (r.get("session_link", "") for r in browser_records if r.get("session_link")),
-            he_task_links.get(fn_name, ""),
-        )
+            playwright_overall = _overall_status(browser_records)
+            per_browser = _browser_summary(browser_records, all_browsers)
 
-        # ── Kane AI result (Stage 1, always from analyzed_requirements.json) ─
-        kane_status = req.get("kane_status") or "unknown"
-        kane_links = req.get("kane_links", [])
-        kane_session_link = kane_links[0] if kane_links else ""
-        kane_one_liner = req.get("kane_one_liner", "")
-        kane_summary = req.get("kane_summary", "")
-        kane_steps = req.get("kane_steps", [])
+            session_link = next(
+                (r.get("session_link", "") for r in browser_records if r.get("session_link")),
+                he_task_links.get(fn_name, ""),
+            )
 
-        # ── Combined overall — BOTH Kane AND Playwright must pass ────────────
-        if playwright_overall != "data_unavailable":
-            executed += 1
-            if playwright_overall == "passed" and kane_status == "passed":
-                overall = "passed"
-                passed += 1
+            # ── Kane AI result (Stage 1, per scenario) ───────────────────────
+            kane = _kane_for_scenario(req, sc_id)
+            kane_status = kane["status"]
+
+            # ── Combined overall — BOTH Kane AND Playwright must pass ────────
+            if playwright_overall != "data_unavailable":
+                executed += 1
+                if playwright_overall == "passed" and kane_status == "passed":
+                    overall = "passed"
+                    passed += 1
+                else:
+                    overall = "failed"
+                    failing.append(sc_id)
             else:
-                overall = "failed"
-                failing.append(sc_id)
-        else:
-            untested.append(req["id"])
-            overall = "data_unavailable"
+                overall = "data_unavailable"
 
-        _debug(
-            f"{req['id']}/{sc_id}: kane={kane_status} playwright={playwright_overall} "
-            f"overall={overall} browsers={per_browser}"
-        )
+            _debug(
+                f"{req_id}/{sc_id}: kane={kane_status} playwright={playwright_overall} "
+                f"overall={overall} browsers={per_browser}"
+            )
 
-        # Feature + coverage-category annotation
-        description = req.get("description", "")
-        feature      = _classify_feature(description)
-        criticality  = _FEATURE_CRITICALITY.get(feature, "MEDIUM")
-        combined_txt = description.lower()
-        browsers_run = {r.get("browser", "") for r in browser_records
-                        if r.get("status") not in ("data_unavailable", None)}
-        coverage_categories = {
-            "happy_path":  sc_id != "n/a",
-            "negative":    any(kw in combined_txt for kw in _NEGATIVE_KW),
-            "edge_case":   any(kw in combined_txt for kw in _EDGE_KW),
-            "mobile":      bool(browsers_run & _MOBILE_BR),
-            "android":     "android" in browsers_run,
-            "he_executed": bool(session_link),
-            "regression":  playwright_overall not in ("data_unavailable", None),
-        }
+            feature = classify_feature(description, explicit=scenario.get("feature"))
+            criticality = criticality_for(feature)
+            combined_txt = f"{description} {scenario.get('title', '')} {scenario.get('description', '')}".lower()
+            browsers_run = {r.get("browser", "") for r in browser_records
+                            if r.get("status") not in ("data_unavailable", None)}
+            tags = {str(t).lower() for t in (scenario.get("tags") or [])}
+            coverage_categories = {
+                "happy_path":  True,
+                "negative":    "negative" in tags or any(kw in combined_txt for kw in _NEGATIVE_KW),
+                "edge_case":   bool(tags & {"edge", "boundary"}) or any(kw in combined_txt for kw in _EDGE_KW),
+                "mobile":      "mobile" in tags or bool(browsers_run & _MOBILE_BR),
+                "android":     "android" in browsers_run,
+                "he_executed": bool(session_link),
+                "regression":  playwright_overall not in ("data_unavailable", None),
+            }
 
-        rows.append({
-            "requirement_id": req["id"],
+            row = {
+                "requirement_id": req_id,
+                "brd_ref": brd_ref,
+                "acceptance_criterion": description,
+                "scenario_id": sc_id,
+                "test_case_id": tc_id,
+                "function_name": fn_name,
+                "source": scenario.get("source", "generated"),
+                "feature": feature,
+                "criticality": criticality,
+                "coverage_categories": coverage_categories,
+                "kane_ai_result": kane_status,
+                "kane_session_link": kane["links"][0] if kane["links"] else "",
+                "kane_one_liner": kane["one_liner"],
+                "kane_summary": kane["summary"],
+                "kane_steps": kane["steps"],
+                "playwright_status": playwright_overall,
+                "playwright_per_browser": per_browser,
+                "session_link": session_link,
+                "overall": overall,
+            }
+            rows.append(row)
+            req_rows.append(row)
+
+        req_overall = _requirement_overall(req_rows)
+        if req_overall == "data_unavailable":
+            untested.append(req_id)
+        requirements_out.append({
+            "requirement_id": req_id,
+            "brd_ref": brd_ref,
             "acceptance_criterion": description,
-            "scenario_id": sc_id,
-            "test_case_id": tc_id,
-            "function_name": fn_name,
-            "feature": feature,
-            "criticality": criticality,
-            "coverage_categories": coverage_categories,
-            "kane_ai_result": kane_status,
-            "kane_session_link": kane_session_link,
-            "kane_one_liner": kane_one_liner,
-            "kane_summary": kane_summary,
-            "kane_steps": kane_steps,
-            "playwright_status": playwright_overall,
-            "playwright_per_browser": per_browser,
-            "session_link": session_link,
-            "overall": overall,
+            "scenario_ids": [r["scenario_id"] for r in req_rows],
+            "deprecated_scenario_ids": [s["id"] for s in tombstones],
+            "kane_status": rollup_kane_status(r["kane_ai_result"] for r in req_rows),
+            "playwright_status": rollup_playwright_status(r["playwright_status"] for r in req_rows),
+            "overall": req_overall,
         })
 
     pass_rate = round((passed / executed) * 100, 1) if executed else 0.0
@@ -387,8 +501,12 @@ def main():
 
     summary = {
         "run_type": manifest.get("run_type", "unknown"),
-        "requirements_covered": len([r for r in rows if r["scenario_id"] != "n/a"]),
+        "requirements_covered": sum(1 for q in requirements_out if q["scenario_ids"]),
         "requirements_total": len(requirements),
+        "requirements_uncovered": sum(
+            1 for q in requirements_out if not q["scenario_ids"] and q["overall"] != "deprecated"
+        ),
+        "scenarios_total": sum(len(q["scenario_ids"]) for q in requirements_out),
         "executed": executed,
         "passed": passed,
         "pass_rate": pass_rate,
@@ -397,7 +515,7 @@ def main():
         "failing_scenarios": [s for s in failing if s != "n/a"],
     }
 
-    result_analysis = compute_result_analysis(rows, summary, all_browsers)
+    result_analysis = compute_result_analysis(rows, summary, all_browsers, requirements_out)
 
     # ── Markdown ──────────────────────────────────────────────────────────────
     browser_cols = " | ".join(b.capitalize() for b in all_browsers) if all_browsers else "Browser"
@@ -407,14 +525,34 @@ def main():
         "# Traceability Matrix",
         "",
         f"- Run type: {summary['run_type']}",
-        f"- Requirements covered: {summary['requirements_covered']}/{summary['requirements_total']}",
+        f"- Requirements covered: {summary['requirements_covered']}/{summary['requirements_total']}"
+        + (f" ({summary['requirements_uncovered']} uncovered)" if summary["requirements_uncovered"] else ""),
+        f"- Scenarios: {summary['scenarios_total']} ({summary['executed']} executed)",
         f"- Browsers tested: {', '.join(all_browsers) or 'none'}",
         f"- Playwright pass rate: {summary['pass_rate']}% "
         f"({summary['passed']} passed, {summary['executed'] - summary['passed']} failed or skipped)",
         "",
-        f"| Req ID | Acceptance Criterion | Scenario | Test Case | Kane Verify | Kane Session | What Kane Saw | {browser_cols} | Playwright | Session | Overall |",
-        f"|---|---|---|---|---|---|---|{browser_sep}|---|---|---|",
+        "## Requirement Roll-up",
+        "",
+        "| Req | BRD ref | Scenarios | Kane | Playwright | Overall |",
+        "|---|---|---|---|---|---|",
     ]
+    for q in requirements_out:
+        sc_cell = ", ".join(q["scenario_ids"]) or "—"
+        if q["deprecated_scenario_ids"]:
+            sc_cell += f" (deprecated: {', '.join(q['deprecated_scenario_ids'])})"
+        lines.append(
+            f"| {q['requirement_id']} | {q['brd_ref'] or '—'} | {sc_cell} "
+            f"| {q['kane_status']} | {q['playwright_status']} | {q['overall']} |"
+        )
+
+    lines.extend([
+        "",
+        "## Scenario Matrix",
+        "",
+        f"| Req ID | BRD ref | Acceptance Criterion | Scenario | Test Case | Source | Kane Verify | Kane Session | What Kane Saw | {browser_cols} | Playwright | Session | Overall |",
+        f"|---|---|---|---|---|---|---|---|---|{browser_sep}|---|---|---|",
+    ])
 
     for row in rows:
         one_liner = row.get("kane_one_liner") or "—"
@@ -427,9 +565,11 @@ def main():
         criterion = row["acceptance_criterion"]
         lines.append(
             f"| {row['requirement_id']} "
+            f"| {row.get('brd_ref') or '—'} "
             f"| {criterion} "
             f"| {row['scenario_id']} "
             f"| {row['test_case_id']} "
+            f"| {row.get('source') or '—'} "
             f"| {row['kane_ai_result']} "
             f"| {kane_cell} "
             f"| {one_liner} "
@@ -439,10 +579,10 @@ def main():
             f"| {row['overall']} |"
         )
 
-    # Kane AI detail section
+    # Kane AI detail section (per scenario)
     lines.extend(["", "## Kane AI Verification Detail", ""])
     for row in rows:
-        lines.append(f"### {row['requirement_id']} — {row['acceptance_criterion']}")
+        lines.append(f"### {row['requirement_id']} / {row['scenario_id']} — {row['acceptance_criterion']}")
         if row.get("kane_one_liner"):
             lines.append(f"> {row['kane_one_liner']}")
         lines.append("")
@@ -472,8 +612,12 @@ def main():
 
     if summary["untested_requirements"]:
         lines.extend(["", "## No Execution Data", ""])
+        uncovered_ids = {q["requirement_id"] for q in requirements_out if not q["scenario_ids"]}
         for item in summary["untested_requirements"]:
-            lines.append(f"- {item}: no Playwright execution data (data_unavailable)")
+            if item in uncovered_ids:
+                lines.append(f"- {item}: no scenario covers this requirement")
+            else:
+                lines.append(f"- {item}: no Playwright execution data (data_unavailable)")
 
     if summary["failing_scenarios"]:
         lines.extend(["", "## Failing Scenarios", ""])
@@ -503,13 +647,19 @@ def main():
 
     json_path = Path(args.json_out)
     json_path.write_text(
-        json.dumps({"summary": summary, "rows": rows, "result_analysis": result_analysis}, indent=2) + "\n",
+        json.dumps({
+            "summary": summary,
+            "requirements": requirements_out,
+            "rows": rows,
+            "result_analysis": result_analysis,
+        }, indent=2) + "\n",
         encoding="utf-8",
     )
 
     failing_count = summary.get("executed", 0) - summary.get("passed", 0)
     print_stage_result("7", "TRACEABILITY_REPORT", {
         "Requirements covered": f"{summary['requirements_covered']}/{summary['requirements_total']}",
+        "Scenarios":            f"{summary['scenarios_total']} ({summary['executed']} executed)",
         "Pass rate":            f"{pass_rate}%",
         "Passed":               summary.get("passed", 0),
         "Failed":               failing_count,

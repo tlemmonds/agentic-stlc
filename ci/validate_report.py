@@ -4,9 +4,13 @@ Validate traceability integrity before report generation.
 Rules enforced:
   1. Every active scenario maps to a known requirement.
   2. Every normalized result maps to a real scenario and requirement.
-  3. Every traceability row references a real requirement.
+  3. Every traceability row references a real requirement (many-to-one: a
+     requirement may legitimately own several rows, one per scenario).
   4. Missing data is marked "data_unavailable" — never fabricated.
   5. Comparison results cite their data sources.
+  7. Every row scenario_id (other than "n/a") exists in scenarios.json.
+  8. No requirement has both an "n/a" row and real scenario rows; the
+     `requirements` roll-up list agrees with the rows.
 
 Set REPORT_DEBUG=true for verbose derivation output.
 
@@ -82,13 +86,56 @@ def validate():
             )
         _debug(f"Result {sc_id}/{browser} → req={req_id}, status={r.get('status')}")
 
-    # Rule 3: traceability rows reference real requirements
-    for row in traceability.get("rows", []):
+    # Rule 3: traceability rows reference real requirements.
+    # Many-to-one: multiple rows per requirement are expected (one per scenario).
+    trace_rows = traceability.get("rows", [])
+    rows_by_req: dict = {}
+    for row in trace_rows:
         req_id = row.get("requirement_id", "")
+        rows_by_req.setdefault(req_id, []).append(row)
         if req_id and req_id not in req_ids:
             errors.append(
-                f"Traceability row references requirement {req_id!r} "
-                f"not found in analyzed_requirements.json"
+                f"Traceability row {row.get('scenario_id', '?')} references requirement "
+                f"{req_id!r} not found in analyzed_requirements.json"
+            )
+    _debug("Rows per requirement: " + ", ".join(f"{k}={len(v)}" for k, v in rows_by_req.items()))
+
+    # Rule 7: every real row scenario_id exists in scenarios.json
+    for row in trace_rows:
+        sc_id = row.get("scenario_id", "")
+        if sc_id and sc_id != "n/a" and sc_id not in all_sc_ids:
+            errors.append(
+                f"Traceability row for {row.get('requirement_id')} references scenario "
+                f"{sc_id!r} not found in scenarios.json"
+            )
+
+    # Rule 8: a requirement is either uncovered (one "n/a" row) or covered
+    # (real scenario rows) — never both; and the roll-up list must agree.
+    for req_id, req_rows in rows_by_req.items():
+        na_rows = [r for r in req_rows if r.get("scenario_id") == "n/a"]
+        real_rows = [r for r in req_rows if r.get("scenario_id") not in ("", "n/a", None)]
+        if na_rows and real_rows:
+            errors.append(
+                f"Requirement {req_id} has an 'n/a' row alongside scenario rows "
+                f"{[r.get('scenario_id') for r in real_rows]}"
+            )
+        if len(na_rows) > 1:
+            errors.append(f"Requirement {req_id} has {len(na_rows)} 'n/a' rows (expected at most one)")
+    rollup = traceability.get("requirements", []) or []
+    for q in rollup:
+        if not isinstance(q, dict):
+            continue
+        rid = q.get("requirement_id", "")
+        if rid not in req_ids:
+            errors.append(f"Roll-up entry references requirement {rid!r} not found in analyzed_requirements.json")
+        active_in_rows = {
+            r.get("scenario_id") for r in rows_by_req.get(rid, [])
+            if r.get("scenario_id") not in ("", "n/a", None) and r.get("overall") != "deprecated"
+        }
+        if set(q.get("scenario_ids", [])) != active_in_rows:
+            errors.append(
+                f"Roll-up for {rid} lists scenarios {sorted(q.get('scenario_ids', []))} "
+                f"but rows contain {sorted(active_in_rows)}"
             )
 
     # Rule 4: data_unavailable entries are flagged as warnings (correct behaviour, not an error)
@@ -136,6 +183,8 @@ def validate():
         "warnings": warnings,
         "requirements_count": len(requirements),
         "active_scenarios_count": len(active_sc_ids),
+        "traceability_rows_count": len(trace_rows),
+        "traceability_requirements_count": len(rollup),
         "results_count": len(normalized),
         "data_unavailable_count": len(unavailable),
     }

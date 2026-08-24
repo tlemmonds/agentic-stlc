@@ -22,6 +22,8 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).parent))
+import project_config  # noqa: E402  (kaneai.adaptive_heal)
 
 # Mirror of the EXIT_STATUS map in analyze_requirements.py — kept local so
 # this module stays self-contained.
@@ -125,17 +127,25 @@ def replay(
     if code_export_dir is not None:
         code_export_dir.mkdir(parents=True, exist_ok=True)
         command.extend(["--code-export", "--code-language", "python", "--skip-code-validation"])
+    # A replay miss is a finding, not something to heal silently — unless the
+    # project opts in via `kaneai.adaptive_heal: true`.
+    if not project_config.adaptive_heal():
+        command.append("--no-adaptive-heal")
 
     started = time.time()
     # Subprocess-level timeout = Kane's --timeout + a 60s safety margin so
     # a hung CLI doesn't pin a worker thread forever (the smoke-test on
     # 2026-05-15 ran for an hour with --timeout=180 set on Kane itself,
     # confirming Kane can ignore its own timeout flag).
+    #
+    # cwd=REPO_ROOT so kane-cli auto-loads `{cwd}/.testmuai/variables/*.json`
+    # and resolves the asset's sibling `output-<stem>/` sidecar (TMS reuse).
     try:
         completed = subprocess.run(
             command, capture_output=True, text=True, check=False,
             encoding="utf-8", errors="replace",
             timeout=timeout_seconds + 60,
+            cwd=str(REPO_ROOT),
         )
     except subprocess.TimeoutExpired as exc:
         return {

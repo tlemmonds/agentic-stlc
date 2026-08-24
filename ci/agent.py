@@ -162,9 +162,53 @@ def _build_test_function(scenario: dict) -> str:
 
 
 # ── Stage 2: Sync scenarios (deterministic diff) ───────────────────────────
+def _asset_drifted(scenario: dict) -> bool:
+    """Ingested scenario: True when the asset body hash (sha256[:12] of the
+    whitespace-normalized _test.md) differs from the sidecar
+    `<asset>.meta.json` description_hash. Same rule as manage_scenarios.py
+    and skills/scenario_generation.py. Missing asset/sidecar → not drifted."""
+    from project_config import scenario_asset_path
+    path = scenario_asset_path(scenario)
+    if path is None or not path.exists():
+        return False
+    try:
+        import replay_policy as _rp
+        recorded = _rp.read_asset_hash(path)
+        hasher = getattr(_rp, "hash_asset_body", None)
+    except ImportError:
+        recorded, hasher = None, None
+        sidecar = path.with_suffix(".meta.json")
+        if sidecar.exists():
+            try:
+                v = json.loads(sidecar.read_text(encoding="utf-8")).get("description_hash")
+                recorded = v if isinstance(v, str) and v else None
+            except (OSError, json.JSONDecodeError, AttributeError):
+                recorded = None
+    if not recorded:
+        return False
+    if hasher is None:
+        import hashlib
+
+        def hasher(text: str) -> str:  # local fallback, mirrors replay_policy.hash_asset_body
+            lines = [ln.rstrip() for ln in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+            return hashlib.sha256("\n".join(lines).strip().encode("utf-8")).hexdigest()[:12]
+    try:
+        return hasher(path.read_text(encoding="utf-8")) != recorded
+    except OSError:
+        return False
+
+
 def sync_scenarios(requirements: list, existing: list) -> list:
-    existing_by_req = {s["requirement_id"]: s for s in existing}
+    """Many-to-one sync (docs/MANY_TO_ONE.md): requirement_id → [scenario, ...].
+    Every existing record is kept (never dropped, never renumbered).
+    Ingested scenarios: active, or updated when the asset drifted from its
+    sidecar. Generated: source_description comparison. Zero scenarios → one
+    generated scenario only when scenarios.auto_create is true."""
+    from project_config import auto_create_scenarios, group_scenarios_by_requirement, is_ingested
+
+    grouped = group_scenarios_by_requirement(existing, include_deprecated=True)
     current_req_ids = {r["id"] for r in requirements}
+    auto_create = auto_create_scenarios()
 
     max_num = 0
     for sc in existing:
@@ -175,70 +219,97 @@ def sync_scenarios(requirements: list, existing: list) -> list:
 
     result = []
     for req in requirements:
-        existing_sc = existing_by_req.get(req["id"])
-        if existing_sc is None:
-            sc_id  = f"SC-{next_num:03d}"
-            tc_id  = f"TC-{next_num:03d}"
-            next_num += 1
-            status = "new"
-        else:
-            sc_id  = existing_sc["id"]
-            tc_id  = existing_sc.get("test_case_id", sc_id.replace("SC-", "TC-"))
-            # "deprecated" is a tombstone — once release_diff marks an
-            # AC as removed (e.g. v1.1.0's "User can delete a task"), the
-            # status must survive even though the AC line is still present
-            # in taskflow.txt. Otherwise Stage 4 re-includes the test, HE
-            # runs it against an AUT that no longer supports the feature,
-            # and the verdict flips from GREEN to YELLOW on every run.
-            if existing_sc.get("status") == "deprecated":
-                status = "deprecated"
-            else:
-                status = (
-                    "updated" if existing_sc.get("source_description") != req["description"]
-                    else "active"
-                )
+        brd_ref = req.get("brd_ref")
+        group = grouped.get(req["id"], [])
+        if not group:
+            if not auto_create:
+                print(f"[stage2] {req['id']}: no scenarios and scenarios.auto_create=false — left uncovered")
+                continue
+            group = [None]  # allocate exactly one generated scenario, as before
 
-        title = req.get("kane_one_liner") or req.get("title", req["id"])
-        # Fix None-fallthrough: existing_sc may carry function_name=None from
-        # an earlier broken run. Always derive when missing rather than
-        # propagating None into pytest_selection.txt.
-        fn_name = (
-            (existing_sc.get("function_name") if existing_sc else None)
-            or _derive_fn_name(sc_id, title)
-        )
-        # Preserve any custom kane_objective the operator (or release_diff)
-        # set on an existing scenario. Multi-step objectives like SC-002's
-        # setup → verify lifecycle are hand-authored and would be silently
-        # destroyed if we always defaulted to the AC description.
-        kane_objective = (
-            (existing_sc or {}).get("kane_objective")
-            or f"On {TARGET_URL} — {req['description']}"
-        )
-        record = {
-            "id":                 sc_id,
-            "test_case_id":       tc_id,
-            "requirement_id":     req["id"],
-            "title":              title,
-            "function_name":      fn_name,
-            "status":             status,
-            "source_description": req["description"],
-            "steps":              req.get("kane_steps") or [
-                f"Navigate to {TARGET_URL}", "Verify the acceptance criterion"
-            ],
-            "expected_result":    req.get("kane_summary") or req["description"],
-            "kane_url":           TARGET_URL,
-            "kane_objective":     kane_objective,
-            "last_verified":      TODAY,
-        }
-        # Preserve release-diff tombstone metadata (deprecated_in_release,
-        # deprecated_at) so the coverage report can attribute the removal
-        # to the right release. Without this, SC-005's "removed in v1.1.0"
-        # provenance is lost every time Stage 2 re-runs.
-        if status == "deprecated" and existing_sc:
-            for k in ("deprecated_in_release", "deprecated_at", "deprecated_by"):
-                if existing_sc.get(k):
-                    record[k] = existing_sc[k]
-        result.append(record)
+        for existing_sc in group:
+            if existing_sc is not None and is_ingested(existing_sc):
+                # Ingested: the asset is authoritative — keep the record verbatim,
+                # only refresh status / verification metadata.
+                if existing_sc.get("status") == "deprecated":
+                    status = "deprecated"
+                else:
+                    status = "updated" if _asset_drifted(existing_sc) else "active"
+                record = {**existing_sc, "status": status, "last_verified": TODAY}
+                if brd_ref and not record.get("brd_ref"):
+                    record["brd_ref"] = brd_ref
+                result.append(record)
+                continue
+
+            if existing_sc is None:
+                sc_id  = f"SC-{next_num:03d}"
+                tc_id  = f"TC-{next_num:03d}"
+                next_num += 1
+                status = "new"
+            else:
+                sc_id  = existing_sc["id"]
+                tc_id  = existing_sc.get("test_case_id", sc_id.replace("SC-", "TC-"))
+                # "deprecated" is a tombstone — once release_diff marks an
+                # AC as removed (e.g. v1.1.0's "User can delete a task"), the
+                # status must survive even though the AC line is still present
+                # in taskflow.txt. Otherwise Stage 4 re-includes the test, HE
+                # runs it against an AUT that no longer supports the feature,
+                # and the verdict flips from GREEN to YELLOW on every run.
+                if existing_sc.get("status") == "deprecated":
+                    status = "deprecated"
+                else:
+                    status = (
+                        "updated" if existing_sc.get("source_description") != req["description"]
+                        else "active"
+                    )
+
+            title = req.get("kane_one_liner") or req.get("title", req["id"])
+            # Fix None-fallthrough: existing_sc may carry function_name=None from
+            # an earlier broken run. Always derive when missing rather than
+            # propagating None into pytest_selection.txt.
+            fn_name = (
+                (existing_sc.get("function_name") if existing_sc else None)
+                or _derive_fn_name(sc_id, title)
+            )
+            # Preserve any custom kane_objective the operator (or release_diff)
+            # set on an existing scenario. Multi-step objectives like SC-002's
+            # setup → verify lifecycle are hand-authored and would be silently
+            # destroyed if we always defaulted to the AC description.
+            kane_objective = (
+                (existing_sc or {}).get("kane_objective")
+                or f"On {TARGET_URL} — {req['description']}"
+            )
+            record = {
+                "id":                 sc_id,
+                "test_case_id":       tc_id,
+                "requirement_id":     req["id"],
+                "title":              title,
+                "function_name":      fn_name,
+                "status":             status,
+                "source_description": req["description"],
+                "steps":              req.get("kane_steps") or [
+                    f"Navigate to {TARGET_URL}", "Verify the acceptance criterion"
+                ],
+                "expected_result":    req.get("kane_summary") or req["description"],
+                "kane_url":           TARGET_URL,
+                "kane_objective":     kane_objective,
+                "last_verified":      TODAY,
+            }
+            # brd_ref: from the requirement (new + backfill), else whatever the record had.
+            if brd_ref:
+                record["brd_ref"] = (existing_sc or {}).get("brd_ref") or brd_ref
+            elif (existing_sc or {}).get("brd_ref"):
+                record["brd_ref"] = existing_sc["brd_ref"]
+            # Preserve release-diff tombstone / review metadata (deprecated_in_release,
+            # deprecated_at, review_required …) so the coverage report can attribute
+            # the removal to the right release. Without this, SC-005's "removed in
+            # v1.1.0" provenance is lost every time Stage 2 re-runs.
+            if existing_sc:
+                for k in ("feature", "deprecated_in_release", "deprecated_at", "deprecated_by",
+                          "review_required", "review_reason"):
+                    if existing_sc.get(k):
+                        record[k] = existing_sc[k]
+            result.append(record)
 
     # Preserve deprecated entries for removed requirements
     for sc in existing:
@@ -298,7 +369,15 @@ def write_test_selection(scenarios: list) -> list:
         selected = [s for s in scenarios if s["status"] in ("new", "updated")]
 
     lines = []
+    native_ids = []
     for sc in selected:
+        # Many-to-one / ingested: testmu-SDK exports run natively as a directory
+        # task (ci/run_selected.py → tests/playwright/native/run_with_junit.py),
+        # not as a pytest node inside test_powerapps.py.
+        if sc.get("export_kind") == "testmu" or sc.get("playwright_export"):
+            lines.append(f"tests/playwright/native/{sc['id'].lower().replace('-', '_')}")
+            native_ids.append(sc["id"])
+            continue
         fn = sc.get("function_name") or _derive_fn_name(sc["id"], sc.get("title", sc["id"]))
         lines.append(f"tests/playwright/test_powerapps.py::{fn}")
 
@@ -308,6 +387,7 @@ def write_test_selection(scenarios: list) -> list:
     run_type = "full" if FULL_RUN else "incremental"
     manifest = {
         "selected_scenarios": [s["id"] for s in selected],
+        "selected_native": native_ids,
         "run_type": run_type,
     }
     Path("reports/test_execution_manifest.json").write_text(
@@ -793,11 +873,18 @@ async def main() -> None:
 
     counts = {s: sum(1 for x in scenarios if x["status"] == s)
               for s in ("new", "updated", "active", "deprecated")}
+    # Many-to-one: requirements with no non-deprecated scenario are uncovered
+    # (scenarios.auto_create=false leaves them so — reported, not filled).
+    covered = {x["requirement_id"] for x in scenarios if x["status"] != "deprecated"}
+    uncovered = [r["id"] for r in requirements if r["id"] not in covered]
+    if uncovered:
+        print(f"[stage2] uncovered requirements ({len(uncovered)}): {', '.join(uncovered)}")
     print_stage_result("2", "MANAGE_SCENARIOS", {
         "Active":     counts["active"],
         "Updated":    counts["updated"],
         "New":        counts["new"],
         "Deprecated": counts["deprecated"],
+        "Uncovered":  len(uncovered),
         "Total":      len(scenarios),
         "Output":     "scenarios/scenarios.json",
     })

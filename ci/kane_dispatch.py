@@ -1,8 +1,11 @@
 """Stage 1 dispatcher — replaces the inline `_KANE_TASK_OVERRIDES` lookup
 in analyze_requirements.py with a replay-first policy.
 
-For each AC the pipeline asks: replay an existing _test.md, record a new
-one, or skip? See ci/replay_policy.py for the decision algorithm.
+Many-to-one (docs/MANY_TO_ONE.md): the unit of work is the *scenario*, not
+the requirement. For each non-deprecated scenario the pipeline asks: replay
+an existing _test.md, record a new one, or skip? See ci/replay_policy.py
+for the decision algorithm. Results carry `scenario_id` + `requirement_id`
+so Stage 1 can roll them up per requirement.
 """
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ from replay_policy import (
 )
 import kane_record
 import kane_replay
+import project_config
 
 CODE_EXPORT_CACHE = REPO_ROOT / "tests" / "playwright" / "exported"
 DECISIONS_LOG = REPO_ROOT / "reports" / "replay_decisions.json"
@@ -136,14 +140,13 @@ def build_name() -> str:
     return f"Agentic STLC #{run_number} | {today}" if run_number else f"Agentic STLC | {today}"
 
 
-def _scenario_for(requirement_id: str, scenarios: list[dict]) -> dict | None:
-    for sc in scenarios:
-        if sc.get("requirement_id") == requirement_id:
-            return sc
-    return None
+def _description_for(sc: dict) -> str:
+    """Tolerate both the current `description` key and the legacy
+    `source_description` key emitted by older Stage 2 runs."""
+    return sc.get("description") or sc.get("source_description") or ""
 
 
-def _objective_for(requirement_id: str, scenarios: list[dict], description: str) -> str:
+def _objective_for(sc: dict, description: str) -> str:
     """Reuse the canonical objective baked into scenarios.json
     (kane_objective) if present; fall back to the AC description prefixed
     with TARGET_URL so Kane lands on the right site.
@@ -152,19 +155,12 @@ def _objective_for(requirement_id: str, scenarios: list[dict], description: str)
     site (kaneai-playground.lambdatest.io) instead of the AUT. We only
     inject TARGET_URL when the objective doesn't already mention it, to
     avoid double-prefixing custom objectives."""
-    sc = _scenario_for(requirement_id, scenarios)
-    if sc and sc.get("kane_objective"):
+    if sc.get("kane_objective"):
         return sc["kane_objective"]
     target_url = os.environ.get("TARGET_URL", "").strip()
     if target_url and target_url.rstrip("/") not in description:
         return f"On {target_url} — {description}"
     return description
-
-
-def _description_for(sc: dict) -> str:
-    """Tolerate both the current `description` key and the legacy
-    `source_description` key emitted by older Stage 2 runs."""
-    return sc.get("description") or sc.get("source_description") or ""
 
 
 def _export_subdir_for(sc_id: str) -> Path:
@@ -180,24 +176,49 @@ def _scenarios_from(path: Path) -> list[dict]:
         return []
 
 
+def _skipped_result(decision: ReplayDecision) -> dict[str, Any]:
+    return {
+        "status": "skipped",
+        "summary": f"skipped: {decision.reason}",
+        "one_liner": "", "steps": [], "final_state": {},
+        "duration": None, "test_url": "",
+        "session_id": "", "code_export_dir": "",
+        "asset_path": str(decision.asset_path) if decision.asset_path else "",
+        "replay_decision": decision.decision,
+    }
+
+
 def dispatch_one(
     *,
-    index: int,
-    description: str,
-    scenarios: list[dict],
+    requirement: dict,
+    scenario: dict,
     username: str,
     access_key: str,
     force_re_author: bool,
+    allow_record: bool = True,
 ) -> tuple[ReplayDecision, dict[str, Any]]:
-    """Decide + execute for a single AC. Returns (decision, kane_result).
+    """Decide + execute for a single scenario. Returns (decision, kane_result).
 
-    The kane_result shape matches analyze_requirements.run_kane() so
-    Stage 1 emits the same analyzed_requirements.json schema."""
-    requirement_id = f"AC-{index:03d}"
-    sc = _scenario_for(requirement_id, scenarios) or {}
-    sc_id = sc.get("id", f"SC-{index:03d}")
-    feature = sc.get("feature", "general")
-    title = sc.get("title", description[:60])
+    requirement: {"id": "AC-001", "description": ..., "brd_ref": ...}
+    scenario:    one scenarios.json record (non-deprecated)
+
+    The kane_result shape matches analyze_requirements.run_kane() plus
+    `scenario_id` / `requirement_id`, so Stage 1 can roll results up to the
+    requirement.
+
+    Legacy (generated) scenarios behave exactly as before: asset located via
+    existing_asset_path / asset_path_for, hash of the requirement description.
+    Ingested scenarios (`kane_asset` / source=ingested): the asset path is
+    authoritative, the hash is of the asset body, and the pipeline never
+    records or purges the customer's asset — a would-be rerecord becomes a
+    replay of the edited test, and drift retries are disabled."""
+    requirement_id = requirement["id"]
+    description = requirement.get("description") or _description_for(scenario)
+    sc_id = scenario["id"]
+    feature = scenario.get("feature", "general")
+    title = scenario.get("title", description[:60])
+    ingested = project_config.is_ingested(scenario)
+    asset_override = project_config.scenario_asset_path(scenario)
 
     decision = decide(
         sc_id=sc_id,
@@ -206,22 +227,29 @@ def dispatch_one(
         feature=feature,
         title=title,
         force_re_author=force_re_author,
-        deprecated=(sc.get("status") == "deprecated"),
+        deprecated=(scenario.get("status") == "deprecated"),
+        asset_override=asset_override,
+        hash_source="asset" if ingested else "description",
+        allow_record=allow_record,
     )
 
+    if ingested and decision.decision in ("record", "rerecord") and decision.asset_path and decision.asset_path.exists():
+        # The customer's test is the source of truth. If its body drifted,
+        # the human edited it — replay the edited version, never overwrite it.
+        decision = ReplayDecision(
+            sc_id=sc_id, requirement_id=requirement_id, decision="replay",
+            asset_path=decision.asset_path,
+            reason=f"ingested asset is authoritative — replaying instead of {decision.decision} ({decision.reason})",
+            description_hash=decision.description_hash, hash_source=decision.hash_source,
+        )
+
     if decision.decision == "skip":
-        result = {
-            "status": "skipped",
-            "summary": f"skipped: {decision.reason}",
-            "one_liner": "", "steps": [], "final_state": {},
-            "duration": None, "test_url": "",
-            "session_id": "", "code_export_dir": "",
-            "asset_path": str(decision.asset_path) if decision.asset_path else "",
-            "replay_decision": decision.decision,
-        }
+        result = _skipped_result(decision)
+        result["scenario_id"] = sc_id
+        result["requirement_id"] = requirement_id
         return decision, result
 
-    objective = _objective_for(requirement_id, scenarios, description)
+    objective = _objective_for(scenario, description)
     export_dir = _export_subdir_for(sc_id)
     bn = build_name()
 
@@ -232,9 +260,13 @@ def dispatch_one(
 
     target_url = os.environ.get("TARGET_URL", "").strip()
     target_asset = decision.asset_path or asset_path_for(sc_id, feature, title)
+    session_label = scenario.get("kane_session_name") or f"{sc_id} | {title[:60]}"
     current_decision = decision
     drift_attempts = 0
     drift_history: list[str] = []
+    # Drift recovery re-records from scratch. That is only legitimate for
+    # pipeline-owned assets when recording is allowed.
+    drift_retry_budget = 0 if (ingested or not allow_record) else _MAX_DRIFT_RETRIES
 
     while True:
         if current_decision.decision == "replay":
@@ -244,7 +276,7 @@ def dispatch_one(
             _restore_code_export(current_decision.asset_path, export_dir)
             result = kane_replay.replay(
                 current_decision.asset_path,
-                session_name=f"Replay {sc_id} | {description[:60]}",
+                session_name=f"Replay {session_label}",
                 build_name=bn,
                 username=username,
                 access_key=access_key,
@@ -273,13 +305,15 @@ def dispatch_one(
                 _cache_code_export(target_asset, export_dir)
 
         drift_reason = _detect_drift(result, target_url)
-        if drift_reason is None or drift_attempts >= _MAX_DRIFT_RETRIES:
+        if drift_reason is None or drift_attempts >= drift_retry_budget:
+            if drift_reason is not None:
+                drift_history.append(f"{drift_reason} (no retry budget)")
             break
 
         drift_attempts += 1
         drift_history.append(drift_reason)
         print(
-            f"[drift] {sc_id} attempt {drift_attempts}/{_MAX_DRIFT_RETRIES}: "
+            f"[drift] {sc_id} attempt {drift_attempts}/{drift_retry_budget}: "
             f"{drift_reason} — purging contaminated asset and re-recording fresh",
             flush=True,
         )
@@ -295,8 +329,11 @@ def dispatch_one(
             asset_path=target_asset,
             reason=f"drift retry {drift_attempts}: {drift_reason}",
             description_hash=current_decision.description_hash,
+            hash_source=current_decision.hash_source,
         )
 
+    result["scenario_id"] = sc_id
+    result["requirement_id"] = requirement_id
     result["asset_path"] = str(decision.asset_path or "")
     result["replay_decision"] = current_decision.decision
     if drift_attempts:
@@ -306,44 +343,69 @@ def dispatch_one(
 
 
 def dispatch_all(
-    descriptions: list[str],
+    requirements: list[dict],
+    scenarios: list[dict],
     *,
     username: str,
     access_key: str,
-    scenarios_path: Path | None = None,
     max_workers: int = 5,
 ) -> list[dict[str, Any]]:
-    """Dispatch every AC in parallel (mirrors the ThreadPoolExecutor pattern
-    from analyze_requirements.main). Returns a list of kane-result dicts in
-    the same order as descriptions."""
+    """Dispatch every non-deprecated scenario in parallel.
+
+    requirements: [{"id": "AC-001", "description": ..., "brd_ref": ...}, ...]
+    scenarios:    scenarios.json records (many may share one requirement_id)
+
+    The work list is the scenarios, not the requirements: a requirement with
+    zero scenarios produces no Kane work (Stage 1 reports it as not_run).
+    Returns one kane-result dict per scenario, in scenarios.json order, each
+    carrying `scenario_id` + `requirement_id`. Writes replay_decisions.json
+    with one entry per scenario."""
     from concurrent.futures import ThreadPoolExecutor
 
-    scenarios_path = scenarios_path or REPO_ROOT / "scenarios" / "scenarios.json"
-    scenarios = _scenarios_from(scenarios_path)
     force = os.environ.get("FORCE_RE_AUTHOR", "false").lower() == "true"
+    allow_record = project_config.auto_record()
+    req_by_id = {r["id"]: r for r in requirements if isinstance(r, dict) and r.get("id")}
+
+    work: list[tuple[dict, dict]] = []
+    for sc in scenarios:
+        if not isinstance(sc, dict) or not sc.get("id"):
+            continue
+        if sc.get("status") == "deprecated":
+            continue
+        req = req_by_id.get(sc.get("requirement_id"))
+        if req is None:
+            print(
+                f"[Stage 1] {sc['id']} references unknown requirement "
+                f"{sc.get('requirement_id')!r} — skipping",
+                flush=True,
+            )
+            continue
+        work.append((req, sc))
 
     decisions: list[ReplayDecision] = []
-    results: list[dict[str, Any]] = [None] * len(descriptions)  # type: ignore[list-item]
+    results: list[dict[str, Any]] = [None] * len(work)  # type: ignore[list-item]
 
-    def _work(arg):
-        idx, desc = arg
+    def _work(item: tuple[dict, dict]) -> tuple[ReplayDecision, dict[str, Any]]:
+        req, sc = item
         return dispatch_one(
-            index=idx,
-            description=desc,
-            scenarios=scenarios,
+            requirement=req,
+            scenario=sc,
             username=username,
             access_key=access_key,
             force_re_author=force,
+            allow_record=allow_record,
         )
 
-    with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        for i, (decision, result) in enumerate(pool.map(_work, list(enumerate(descriptions, start=1)))):
-            decisions.append(decision)
-            results[i] = result
+    if work:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            for i, (decision, result) in enumerate(pool.map(_work, work)):
+                decisions.append(decision)
+                results[i] = result
 
     DECISIONS_LOG.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "force_re_author": force,
+        "auto_record": allow_record,
         "decisions": [d.to_dict() for d in decisions],
         "summary": {
             label: sum(1 for d in decisions if d.decision == label)

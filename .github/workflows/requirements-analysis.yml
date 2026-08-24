@@ -43,7 +43,7 @@ jobs:
           import sys, json
           from pathlib import Path
           sys.path.insert(0, 'ci')
-          from analyze_requirements import extract_acceptance_criteria
+          from analyze_requirements import extract_acceptance_criteria_texts as extract_acceptance_criteria
 
           results = []
           req_files = sorted(Path('requirements').glob('*.txt'))

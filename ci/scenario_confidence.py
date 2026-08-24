@@ -27,6 +27,12 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
+from project_config import (
+    classify_feature,
+    deprecated_by_requirement,
+    feature_taxonomy,
+    group_scenarios_by_requirement,
+)
 
 
 # Keywords that indicate negative/edge-case coverage in scenario descriptions
@@ -45,10 +51,29 @@ _MOBILE_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
-# TaskFlow feature criticality — must stay in sync with FEATURE_CRITICALITY
-# in ci/coverage_analysis.py.
-_HIGH_CRITICALITY_FEATURES = {"TASK_CRUD", "TASK_LIST", "ARCHIVE"}
-_MEDIUM_CRITICALITY_FEATURES = {"FILTER", "LABELS"}
+# Scenario tags that satisfy a coverage dimension outright (ingested assets
+# carry these; generated scenarios usually don't, so keyword detection on the
+# description/title remains the fallback).
+_NEGATIVE_TAGS = {"negative", "error"}
+_EDGE_TAGS     = {"edge", "boundary"}
+_MOBILE_TAGS   = {"mobile"}
+
+
+def _criticality_sets() -> tuple[set[str], set[str]]:
+    """(HIGH features, MEDIUM features) from the shared taxonomy
+    (agentic-stlc.config.yaml `features:` or the TaskFlow fallback)."""
+    crit, _, _ = feature_taxonomy()
+    high   = {f for f, c in crit.items() if c == "HIGH"}
+    medium = {f for f, c in crit.items() if c == "MEDIUM"}
+    return high, medium
+
+
+def _tags(scenario: dict) -> set[str]:
+    return {str(t).lower() for t in (scenario.get("tags") or [])}
+
+
+def _scenario_text(scenario: dict) -> str:
+    return " ".join(str(scenario.get(k) or "") for k in ("description", "title"))
 
 # Score → confidence-level bucket map. Exported so the GitHub summary can
 # render it as a "Confidence Score Ranges" legend table. Order matters: scan
@@ -62,6 +87,12 @@ CONFIDENCE_SCORE_RANGES: list[dict] = [
 ]
 
 
+def _join_ids(record: dict) -> str:
+    """'SC-013, SC-014' — falls back to the legacy single scenario_id."""
+    ids = record.get("scenario_ids") or ([record["scenario_id"]] if record.get("scenario_id") else [])
+    return ", ".join(ids)
+
+
 def _level_for_score(score: int) -> str:
     """Map a numeric confidence_score (0-100) to its bucket label."""
     for band in CONFIDENCE_SCORE_RANGES:
@@ -72,31 +103,76 @@ def _level_for_score(score: int) -> str:
 
 def _score_scenario(
     requirement: dict,
-    scenario: dict,
+    scenarios: list[dict],
     playwright_bodies: dict[str, str],
 ) -> dict:
-    """Compute confidence score for one requirement/scenario pair."""
-    req_text  = requirement.get("description", "")
-    sc_text   = scenario.get("description", "") + " " + req_text
-    feature   = scenario.get("feature", "GENERAL")
-    sc_id     = scenario.get("id", "")
-    kane_status = requirement.get("kane_status", "not_run")
+    """Compute the confidence score for one requirement across ALL of its
+    (non-deprecated) scenarios. Coverage dimensions are the union: a
+    dimension is satisfied if any scenario's tags or description/title
+    satisfy it. An empty list is the zero-coverage case (CRITICAL_GAP)."""
+    req_text    = requirement.get("description", "")
+    kane_status = requirement.get("kane_status", "not_run")   # roll-up from Stage 1
+    sc_ids      = [s.get("id", "") for s in scenarios if s.get("id")]
+    first_sc    = scenarios[0] if scenarios else {}
+    sc_id       = first_sc.get("id", "")
 
-    # Dimension scoring
-    has_happy     = True   # Any scenario implicitly covers happy path
-    has_negative  = bool(_NEGATIVE_KEYWORDS.search(sc_text))
-    has_edge      = bool(_EDGE_KEYWORDS.search(sc_text))
-    has_mobile    = bool(_MOBILE_KEYWORDS.search(sc_text))
+    # Feature: the explicit scenario feature wins. Legacy 1:1 scenarios carry
+    # no feature and stay GENERAL — keyword-classifying them here would
+    # re-score the TaskFlow baseline (GENERAL/LOW → TASK_CRUD/HIGH).
+    # Zero scenarios: nothing to inherit, so keyword-classify the requirement
+    # text (drives criticality → risk_level for the CRITICAL_GAP record).
+    feature = (
+        classify_feature("", explicit=first_sc.get("feature")) if scenarios
+        else classify_feature(req_text)
+    )
 
-    # Check if test body is more than the generic fallback
-    body = playwright_bodies.get(sc_id, "")
-    has_real_body = bool(body and "page.title" not in body)
-
+    high_features, medium_features = _criticality_sets()
     criticality = (
-        "HIGH" if feature in _HIGH_CRITICALITY_FEATURES
-        else "MEDIUM" if feature in _MEDIUM_CRITICALITY_FEATURES
+        "HIGH" if feature in high_features
+        else "MEDIUM" if feature in medium_features
         else "LOW"
     )
+
+    # Dimension scoring — union across the requirement's scenarios.
+    has_happy = bool(scenarios)   # any mapped scenario implicitly covers the happy path
+    has_negative = has_edge = has_mobile = has_real_body = False
+    for sc in scenarios:
+        tags = _tags(sc)
+        text = _scenario_text(sc) + " " + req_text
+        has_negative |= bool(tags & _NEGATIVE_TAGS) or bool(_NEGATIVE_KEYWORDS.search(text))
+        has_edge     |= bool(tags & _EDGE_TAGS)     or bool(_EDGE_KEYWORDS.search(text))
+        has_mobile   |= bool(tags & _MOBILE_TAGS)   or bool(_MOBILE_KEYWORDS.search(text))
+        # Check if the test body is more than the generic fallback
+        body = playwright_bodies.get(sc.get("id", ""), "")
+        has_real_body |= bool(body and "page.title" not in body)
+
+    if not scenarios:
+        # Zero automated coverage — the CRITICAL_GAP band (score 0).
+        return {
+            "requirement_id": requirement.get("id", ""),
+            "brd_ref": requirement.get("brd_ref", ""),
+            "scenario_id": "",
+            "scenario_ids": [],
+            "scenario_count": 0,
+            "scenario_status": "missing",
+            "acceptance_criterion": req_text,
+            "feature": feature,
+            "criticality": criticality,
+            "kane_status": kane_status,
+            "confidence_score": 0,
+            "confidence_level": "CRITICAL_GAP",
+            "coverage_dimensions": {
+                "happy_path": False, "negative": False, "edge_case": False,
+                "mobile": False, "real_body": False,
+            },
+            "coverage_gaps": ["No scenario mapped — zero automated coverage"],
+            "recommendations": [f"Map or ingest at least one test case for '{req_text[:60]}'"],
+            "confidence_reason": "No scenario mapped — zero automated coverage",
+            "risk_assessment": {
+                "criticality": criticality,
+                "risk_level": "HIGH" if criticality == "HIGH" else "MEDIUM",
+            },
+        }
 
     # Coverage gaps — order matters: the GitHub summary surfaces the first
     # gap in the "Top Gap" column, so list disqualifying signals first so
@@ -111,7 +187,7 @@ def _score_scenario(
         gaps.append("Missing negative/error scenario coverage")
     if not has_edge and criticality == "HIGH":
         gaps.append("Missing edge-case coverage for high-criticality feature")
-    if not has_mobile and feature in _HIGH_CRITICALITY_FEATURES:
+    if not has_mobile and feature in high_features:
         gaps.append("No mobile coverage specified")
 
     # Confidence score (0-100) — per-dimension penalties, criticality-aware.
@@ -122,7 +198,7 @@ def _score_scenario(
         score -= 25
     if not has_edge and criticality == "HIGH":
         score -= 25
-    if not has_mobile and feature in _HIGH_CRITICALITY_FEATURES:
+    if not has_mobile and feature in high_features:
         score -= 25
     if kane_status == "not_run":
         score -= 30
@@ -146,8 +222,11 @@ def _score_scenario(
 
     return {
         "requirement_id": requirement.get("id", ""),
-        "scenario_id": sc_id,
-        "scenario_status": scenario.get("status", "active"),
+        "brd_ref": requirement.get("brd_ref", ""),
+        "scenario_id": sc_id,                # legacy key — first scenario
+        "scenario_ids": sc_ids,
+        "scenario_count": len(sc_ids),
+        "scenario_status": first_sc.get("status", "active"),
         "acceptance_criterion": req_text,
         "feature": feature,
         "criticality": criticality,
@@ -192,34 +271,29 @@ def run_confidence_analysis(
     out    = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    # Build quick lookup maps
-    req_by_id: dict[str, dict] = {r["id"]: r for r in requirements if r.get("id")}
-    sc_by_req: dict[str, dict] = {}
-    deprecated_by_req: dict[str, dict] = {}
-    for sc in scenarios:
-        rid_for_sc = sc.get("requirement_id")
-        if not rid_for_sc:
-            continue
-        if sc.get("status") == "deprecated":
-            deprecated_by_req[rid_for_sc] = sc
-        else:
-            sc_by_req[rid_for_sc] = sc
+    # Many-to-one: requirement_id → [scenario, ...] (scenarios.json order)
+    sc_by_req  = group_scenarios_by_requirement(scenarios)
+    dep_by_req = deprecated_by_requirement(scenarios)
 
     records: list[dict] = []
     for req in requirements:
         rid = req.get("id", "")
-        sc  = sc_by_req.get(rid)
-        if not sc and rid in deprecated_by_req:
-            # Tombstone — the AC line is still in taskflow.txt but its
-            # scenario was removed by a release_diff DELETE op. Don't score
-            # it as a coverage gap; surface it as a deprecated record so
+        scs = sc_by_req.get(rid, [])
+        if not scs and rid in dep_by_req:
+            # Tombstone — the AC line is still in the requirements file but
+            # every scenario was removed by a release_diff DELETE op. Don't
+            # score it as a coverage gap; surface it as a deprecated record so
             # downstream tables can render the tombstone explicitly.
-            dep = deprecated_by_req[rid]
+            deps = dep_by_req[rid]
+            dep  = deps[0]
             records.append({
                 "requirement_id":    rid,
+                "brd_ref":           req.get("brd_ref", ""),
                 "scenario_id":       dep.get("id", ""),
+                "scenario_ids":      [d.get("id", "") for d in deps],
+                "scenario_count":    0,
                 "function_name":     dep.get("function_name", ""),
-                "feature":           dep.get("feature", "GENERAL"),
+                "feature":           classify_feature("", explicit=dep.get("feature")),
                 "kane_status":       "skipped",
                 "confidence_level":  "DEPRECATED",
                 "coverage_dimensions": {},
@@ -229,24 +303,21 @@ def run_confidence_analysis(
                 "deprecated_in_release": dep.get("deprecated_in_release", ""),
             })
             continue
-        if not sc:
-            # Requirement has no scenario → synthesise a placeholder
-            sc = {"id": "", "description": req.get("description", ""), "feature": "GENERAL",
-                  "status": "missing"}
-        records.append(_score_scenario(req, sc, bodies))
+        # Zero scenarios → _score_scenario returns the CRITICAL_GAP record.
+        records.append(_score_scenario(req, scs, bodies))
 
     # Aggregate summary
     by_level: dict[str, int] = {"HIGH": 0, "MEDIUM": 0, "LOW": 0}
     for r in records:
         by_level[r["confidence_level"]] = by_level.get(r["confidence_level"], 0) + 1
 
-    high_risk = [r for r in records if r["confidence_level"] == "LOW"]
+    high_risk = [r for r in records if r["confidence_level"] in ("LOW", "CRITICAL_GAP")]
     missing_neg = [r for r in records if "Missing negative" in " ".join(r.get("coverage_gaps", []))]
 
     quality_signals = {
         "confidence_gate_passed": by_level["LOW"] == 0,
         "high_criticality_low_confidence": [
-            r["scenario_id"] for r in high_risk
+            r.get("scenario_id") or r["requirement_id"] for r in high_risk
             if r.get("risk_assessment", {}).get("criticality") == "HIGH"
         ],
         "missing_negative_coverage_count": len(missing_neg),
@@ -316,9 +387,25 @@ def run_confidence_analysis(
         "",
     ]
     for r in high_risk:
-        md_lines.append(f"- **{r['scenario_id']}** ({r['requirement_id']}): {r['confidence_reason']}")
+        md_lines.append(f"- **{_join_ids(r)}** ({r['requirement_id']}): {r['confidence_reason']}")
     if not high_risk:
         md_lines.append("_None — all scenarios have acceptable confidence_")
+    md_lines += [
+        "",
+        "## Requirement Confidence Detail",
+        "",
+        "| Requirement | Scenarios | Feature | Criticality | Score | Confidence | Kane | Top Gap |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for r in records:
+        gaps = r.get("coverage_gaps", []) or []
+        score = r.get("confidence_score", "—")
+        md_lines.append(
+            f"| `{r['requirement_id']}` | {_join_ids(r) or '—'} | {r.get('feature', '')} | "
+            f"{r.get('risk_assessment', {}).get('criticality', '')} | {score} | "
+            f"{r['confidence_level']} | {r.get('kane_status', '')} | "
+            f"{(gaps[0] if gaps else r.get('confidence_reason', ''))[:60]} |"
+        )
     (out / "requirement-confidence-summary.md").write_text(
         "\n".join(md_lines) + "\n", encoding="utf-8"
     )

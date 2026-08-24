@@ -1,12 +1,20 @@
 import argparse
+import hashlib
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
+from project_config import (
+    auto_create_scenarios,
+    group_scenarios_by_requirement,
+    is_ingested,
+    scenario_asset_path,
+)
 
 # Optional per-AC objective overrides. Empty for the TaskFlow AUT — every AC
 # falls through to its description verbatim. Kept in sync with
@@ -20,6 +28,53 @@ def _get_kane_objective(description: str) -> str:
         if keyword in dl:
             return objective
     return description
+
+
+# ── Ingested-asset drift (many-to-one) ───────────────────────────────────────
+# Same rule in agent.py::sync_scenarios and skills/scenario_generation.py:
+# an ingested scenario is "updated" when the asset file's body hash differs
+# from the sidecar `<asset>.meta.json` `description_hash`. Prefer
+# replay_policy's helpers; fall back to a local equivalent.
+
+def _hash_asset_body(text: str) -> str:
+    try:
+        from replay_policy import hash_asset_body  # type: ignore
+        return hash_asset_body(text)
+    except (ImportError, AttributeError):
+        lines = [ln.rstrip() for ln in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+        normalized = "\n".join(lines).strip()
+        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12]
+
+
+def _sidecar_hash(asset_path: Path) -> str | None:
+    try:
+        from replay_policy import read_asset_hash  # type: ignore
+        return read_asset_hash(asset_path)
+    except (ImportError, AttributeError):
+        pass
+    sidecar = asset_path.with_suffix(".meta.json")
+    if not sidecar.exists():
+        return None
+    try:
+        value = json.loads(sidecar.read_text(encoding="utf-8")).get("description_hash")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None
+    return value if isinstance(value, str) and value else None
+
+
+def asset_drifted(scenario: dict) -> bool:
+    """True when the ingested asset body no longer matches its sidecar hash.
+    Missing asset / sidecar → not drifted (Stage 1 reports asset_missing)."""
+    path = scenario_asset_path(scenario)
+    if path is None or not path.exists():
+        return False
+    recorded = _sidecar_hash(path)
+    if not recorded:
+        return False
+    try:
+        return _hash_asset_body(path.read_text(encoding="utf-8")) != recorded
+    except OSError:
+        return False
 
 
 def parse_args():
@@ -80,51 +135,102 @@ def _fallback_expected(description):
     return description.capitalize()
 
 
+def _next_sc_number(scenarios) -> int:
+    max_n = 0
+    for sc in scenarios:
+        m = re.match(r"SC-(\d+)", str(sc.get("id", "")))
+        if m:
+            max_n = max(max_n, int(m.group(1)))
+    return max_n + 1
+
+
 def main():
     args = parse_args()
     print_stage_header("2", "MANAGE_SCENARIOS", "Sync scenarios.json with analyzed requirements")
     requirements = load_json(args.requirements, [])
     scenarios = load_json(args.scenarios, [])
-    existing_by_requirement = {scenario["requirement_id"]: scenario for scenario in scenarios}
+    # Many-to-one: requirement_id → [scenario, ...] (deprecated included so
+    # tombstones survive; they are never dropped and never renumbered).
+    grouped = group_scenarios_by_requirement(scenarios, include_deprecated=True)
     today = datetime.now(timezone.utc).date().isoformat()
+    next_sc = _next_sc_number(scenarios)
+    auto_create = auto_create_scenarios()
 
     updated = []
-    counts = {"active": 0, "updated": 0, "new": 0, "deprecated": 0}
+    counts = {"active": 0, "updated": 0, "new": 0, "deprecated": 0, "uncovered": 0}
     active_requirement_ids = set()
 
-    for index, requirement in enumerate(requirements, start=1):
-        active_requirement_ids.add(requirement["id"])
+    for requirement in requirements:
+        rid = requirement["id"]
+        active_requirement_ids.add(rid)
+        brd_ref = requirement.get("brd_ref")
         title, steps, expected = title_and_steps(requirement)
-        scenario = existing_by_requirement.get(requirement["id"])
-        status = "new"
-        if scenario:
-            status = "active" if scenario.get("source_description") == requirement["description"] else "updated"
-        else:
-            scenario = {}
+        existing = grouped.get(rid, [])
 
-        record = {
-            "id": scenario.get("id", f"SC-{index:03d}"),
-            "requirement_id": requirement["id"],
-            "title": title,
-            "steps": steps,
-            "expected_result": expected,
-            "status": status,
-            "kane_objective": _get_kane_objective(requirement["description"]),
-            # Preserve the existing kane_url when updating an existing scenario so
-            # scenario-specific starting URLs (e.g. category pages) are not reset
-            # to the homepage on every requirements change.
-            "kane_url": scenario.get("kane_url", requirement["url"]) if scenario else requirement["url"],
-            "kane_last_status": requirement.get("kane_status", "pending"),
-            "test_case_id": scenario.get("test_case_id", f"TC-{index:03d}"),
-            "last_verified": today,
-            "source_description": requirement["description"],
-        }
+        if not existing:
+            if not auto_create:
+                print(f"[manage_scenarios] {rid}: no scenarios and scenarios.auto_create=false — left uncovered")
+                counts["uncovered"] += 1
+                continue
+            existing = [{}]  # one generated scenario, exactly as before
 
-        if requirement.get("kane_status") == "failed":
-            record["kane_failure_reason"] = requirement.get("kane_summary", "")
+        for scenario in existing:
+            if not scenario:
+                status = "new"
+                sc_id = f"SC-{next_sc:03d}"
+                tc_id = f"TC-{next_sc:03d}"
+                next_sc += 1
+            elif scenario.get("status") == "deprecated":
+                status = "deprecated"
+                sc_id = scenario["id"]
+                tc_id = scenario.get("test_case_id", sc_id.replace("SC-", "TC-"))
+            elif is_ingested(scenario):
+                status = "updated" if asset_drifted(scenario) else "active"
+                sc_id = scenario["id"]
+                tc_id = scenario.get("test_case_id", sc_id.replace("SC-", "TC-"))
+            else:
+                status = "active" if scenario.get("source_description") == requirement["description"] else "updated"
+                sc_id = scenario["id"]
+                tc_id = scenario.get("test_case_id", sc_id.replace("SC-", "TC-"))
 
-        updated.append(record)
-        counts[status] += 1
+            if scenario and is_ingested(scenario):
+                # Ingested: the asset is authoritative — keep the record verbatim.
+                record = dict(scenario)
+                record["status"] = status
+                record["kane_last_status"] = requirement.get("kane_status", record.get("kane_last_status", "pending"))
+                record["last_verified"] = today
+            else:
+                record = {
+                    "id": sc_id,
+                    "requirement_id": rid,
+                    "title": title,
+                    "steps": steps,
+                    "expected_result": expected,
+                    "status": status,
+                    "kane_objective": scenario.get("kane_objective") or _get_kane_objective(requirement["description"]),
+                    # Preserve the existing kane_url when updating an existing scenario so
+                    # scenario-specific starting URLs (e.g. category pages) are not reset
+                    # to the homepage on every requirements change.
+                    "kane_url": scenario.get("kane_url", requirement.get("url", "")) if scenario else requirement.get("url", ""),
+                    "kane_last_status": requirement.get("kane_status", "pending"),
+                    "test_case_id": tc_id,
+                    "last_verified": today,
+                    "source_description": requirement["description"],
+                }
+                for k in ("feature", "function_name", "deprecated_in_release", "deprecated_at", "deprecated_by",
+                          "review_required", "review_reason"):
+                    if scenario.get(k) is not None:
+                        record[k] = scenario[k]
+                if requirement.get("kane_status") == "failed":
+                    record["kane_failure_reason"] = requirement.get("kane_summary", "")
+
+            if brd_ref and not record.get("brd_ref"):
+                record["brd_ref"] = brd_ref
+            elif scenario.get("brd_ref") and "brd_ref" not in record:
+                record["brd_ref"] = scenario["brd_ref"]
+
+            updated.append(record)
+            counts[status] += 1
 
     for scenario in scenarios:
         if scenario["requirement_id"] in active_requirement_ids:
@@ -143,6 +249,7 @@ def main():
         "Updated":    counts["updated"],
         "New":        counts["new"],
         "Deprecated": counts["deprecated"],
+        "Uncovered":  counts["uncovered"],
         "Total":      len(updated),
         "Output":     args.scenarios,
     })

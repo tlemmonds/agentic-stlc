@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
+from project_config import auto_record, group_scenarios_by_requirement, rollup_kane_status
 
 # On GitHub Actions: /home/runner/.testmuai/kaneai/sessions/
 # On Windows local:  C:/Users/<user>/.testmuai/kaneai/sessions/
@@ -115,8 +117,24 @@ def parse_args():
     return parser.parse_args()
 
 
+# Optional customer label in front of an AC line, e.g. "[AC-02] User can ..."
+# or "[FR-S4] ...". Captured as `brd_ref`; the pipeline's own id stays AC-nnn.
+_BRD_REF_RE = re.compile(r"^\[([A-Za-z0-9._-]+)\]\s*")
+
+
+def _split_brd_ref(line: str) -> dict:
+    m = _BRD_REF_RE.match(line)
+    if m:
+        return {"description": line[m.end():].strip(), "brd_ref": m.group(1)}
+    return {"description": line.strip(), "brd_ref": None}
+
+
 def extract_acceptance_criteria(text):
-    """Extracts acceptance criteria using deterministic line parsing."""
+    """Extracts acceptance criteria using deterministic line parsing.
+
+    Returns a list of {"description": str, "brd_ref": str | None}. A leading
+    `[REF]` token on the line is stripped into `brd_ref`. Callers that only
+    want the text should use extract_acceptance_criteria_texts()."""
     criteria = []
     lines = [line.strip() for line in text.splitlines()]
     capture = False
@@ -130,7 +148,13 @@ def extract_acceptance_criteria(text):
                 capture = False
                 continue
             criteria.append(line)
-    return [c for c in criteria if c.strip()]
+    return [_split_brd_ref(c) for c in criteria if c.strip()]
+
+
+def extract_acceptance_criteria_texts(text):
+    """Compat wrapper — the pre-many-to-one return shape (plain strings,
+    with any `[REF]` prefix removed)."""
+    return [c["description"] for c in extract_acceptance_criteria(text)]
 
 
 def make_title(description):
@@ -356,32 +380,70 @@ def run_kane(index, description):
     }
 
 
-def load_demo_results(criteria):
-    """Load pre-generated demo Kane results, mapped to the actual criteria list."""
+def _empty_result(status: str, summary: str) -> dict:
+    return {
+        "status": status, "summary": summary,
+        "one_liner": "", "steps": [], "final_state": {}, "duration": None, "test_url": "",
+        "session_id": "", "code_export_dir": "", "asset_path": "", "replay_decision": "",
+    }
+
+
+def load_scenarios(path: Path) -> list:
+    """scenarios.json → list of records ([] when absent or unparsable)."""
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    return [sc for sc in data if isinstance(sc, dict)] if isinstance(data, list) else []
+
+
+def _fan_out(requirements: list, grouped: dict, per_requirement_result) -> list:
+    """Offline modes (demo / --skip-kane) have one result per requirement;
+    copy it onto each of the requirement's scenarios so the rest of Stage 1
+    sees the same per-scenario shape as a live dispatch."""
+    results = []
+    for req in requirements:
+        base = per_requirement_result(req)
+        for sc in grouped.get(req["id"], []):
+            item = dict(base)
+            item["scenario_id"] = sc["id"]
+            item["requirement_id"] = req["id"]
+            results.append(item)
+    return results
+
+
+def load_demo_results(requirements: list, grouped: dict) -> list:
+    """Load pre-generated demo Kane results, mapped by requirement position
+    (the demo file is positional) and fanned out to each scenario."""
     demo_path = Path("ci/demo_kane_results.json")
     if not demo_path.exists():
         raise FileNotFoundError(
             f"DEMO_MODE requires ci/demo_kane_results.json — file not found at {demo_path}"
         )
     demo_data = json.loads(demo_path.read_text(encoding="utf-8"))
-    results = []
-    for i, criterion in enumerate(criteria):
+    by_position = {req["id"]: i for i, req in enumerate(requirements)}
+
+    def _for(req: dict) -> dict:
+        i = by_position[req["id"]]
         if i < len(demo_data):
-            results.append(demo_data[i])
-        else:
-            results.append({
-                "status": "passed",
-                "summary": f"Demo result for: {criterion[:60]}",
-                "one_liner": f"Criterion verified (demo) — {criterion[:50]}",
-                "steps": ["Demo step 1", "Demo step 2"],
-                "final_state": {},
-                "duration": 42,
-                "test_url": "https://automation.lambdatest.com/test?testID=demo",
-            })
-    return results
+            return dict(demo_data[i])
+        desc = req["description"]
+        return {
+            "status": "passed",
+            "summary": f"Demo result for: {desc[:60]}",
+            "one_liner": f"Criterion verified (demo) — {desc[:50]}",
+            "steps": ["Demo step 1", "Demo step 2"],
+            "final_state": {},
+            "duration": 42,
+            "test_url": "https://automation.lambdatest.com/test?testID=demo",
+        }
+
+    return _fan_out(requirements, grouped, _for)
 
 
-def emit_metrics(stage, duration_seconds, cache_hit=False, criteria_count=0):
+def emit_metrics(stage, duration_seconds, cache_hit=False, criteria_count=0, scenario_count=0):
     """Append timing to pipeline_metrics.json — no-op if file absent."""
     metrics_path = Path("reports/pipeline_metrics.json")
     try:
@@ -390,12 +452,69 @@ def emit_metrics(stage, duration_seconds, cache_hit=False, criteria_count=0):
             "duration_seconds": round(duration_seconds, 2),
             "cache_hit": cache_hit,
             "criteria_count": criteria_count,
+            "scenario_count": scenario_count,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         metrics_path.parent.mkdir(parents=True, exist_ok=True)
         metrics_path.write_text(json.dumps(metrics, indent=2))
     except Exception:
         pass
+
+
+def _scenario_entry(kane: dict) -> dict:
+    """Per-scenario block for analyzed_requirements.json (docs/MANY_TO_ONE.md)."""
+    test_url = kane.get("test_url", "")
+    return {
+        "scenario_id": kane.get("scenario_id"),
+        "kane_status": kane.get("status", "not_run"),
+        "kane_links": [test_url] if test_url else [],
+        "kane_one_liner": kane.get("one_liner", ""),
+        "kane_summary": kane.get("summary", ""),
+        "kane_steps": kane.get("steps", []),
+        "kane_final_state": kane.get("final_state", {}),
+        "kane_duration": kane.get("duration"),
+        "kane_asset_path": kane.get("asset_path", ""),
+        "kane_code_export_dir": kane.get("code_export_dir", ""),
+        "kane_replay_decision": kane.get("replay_decision", ""),
+        "kane_session_id": kane.get("session_id", ""),
+        "kane_drift_retries": kane.get("drift_retries", 0),
+        "kane_drift_history": kane.get("drift_history", []),
+    }
+
+
+def build_requirement_record(req: dict, sc_results: list, today: str) -> dict:
+    """Roll the scenario results up to one requirement record. Legacy
+    single-value keys come from the first scenario (or are empty) so
+    downstream consumers that predate many-to-one keep working."""
+    entries = [_scenario_entry(k) for k in sc_results]
+    first = entries[0] if entries else None
+    links: list = []
+    for e in entries:
+        for link in e["kane_links"]:
+            if link not in links:
+                links.append(link)
+    return {
+        "id": req["id"],
+        "brd_ref": req.get("brd_ref"),
+        "title": make_title(req["description"]),
+        "description": req["description"],
+        "url": TARGET_URL,
+        "kane_status": rollup_kane_status(e["kane_status"] for e in entries),
+        "kane_one_liner": first["kane_one_liner"] if first else "",
+        "kane_summary": first["kane_summary"] if first else "No scenarios cover this requirement.",
+        "kane_steps": first["kane_steps"] if first else [],
+        "kane_final_state": first["kane_final_state"] if first else {},
+        "kane_duration": first["kane_duration"] if first else None,
+        "kane_links": links,
+        "kane_session_id": first["kane_session_id"] if first else "",
+        "kane_code_export_dir": first["kane_code_export_dir"] if first else "",
+        "kane_asset_path": first["kane_asset_path"] if first else "",
+        "kane_replay_decision": first["kane_replay_decision"] if first else "",
+        "kane_drift_retries": first["kane_drift_retries"] if first else 0,
+        "kane_drift_history": first["kane_drift_history"] if first else [],
+        "scenarios": entries,
+        "last_analyzed": today,
+    }
 
 
 def main():
@@ -406,85 +525,92 @@ def main():
     print_stage_header("1", "ANALYZE_REQUIREMENTS", "Parse requirements and run KaneAI functional verification")
 
     req_path = Path(args.requirements)
-    criteria = []
+    parsed = []
     if req_path.is_dir():
         for req_file in sorted(req_path.glob("*.txt")):
-            criteria.extend(extract_acceptance_criteria(req_file.read_text(encoding="utf-8")))
+            parsed.extend(extract_acceptance_criteria(req_file.read_text(encoding="utf-8")))
     else:
-        criteria = extract_acceptance_criteria(req_path.read_text(encoding="utf-8"))
+        parsed = extract_acceptance_criteria(req_path.read_text(encoding="utf-8"))
+    requirements = [
+        {"id": f"AC-{i:03d}", "description": c["description"], "brd_ref": c["brd_ref"]}
+        for i, c in enumerate(parsed, start=1)
+    ]
+
+    scenarios_path = Path(os.environ.get("SCENARIOS_PATH", "scenarios/scenarios.json"))
+    scenarios = load_scenarios(scenarios_path)
+    grouped = group_scenarios_by_requirement(scenarios)
+    active_count = sum(len(v) for v in grouped.values())
+    uncovered = [r["id"] for r in requirements if not grouped.get(r["id"])]
+    print(
+        f"[Stage 1] {len(requirements)} requirements, {active_count} active scenarios "
+        f"from {scenarios_path}, {len(uncovered)} uncovered"
+        + (f": {', '.join(uncovered)}" if uncovered else "")
+    )
 
     today = datetime.now(timezone.utc).date().isoformat()
     stage_start = time.time()
 
     if demo_mode:
-        print(f"[DEMO_MODE] Loading pre-generated Kane results for {len(criteria)} criteria")
-        results = load_demo_results(criteria)
+        print(f"[DEMO_MODE] Loading pre-generated Kane results for {len(requirements)} criteria")
+        results = load_demo_results(requirements, grouped)
         cache_hit = True
     elif args.skip_kane:
-        results = [{
-            "status": "pending", "summary": "Kane run not attempted.",
-            "one_liner": "", "steps": [], "final_state": {}, "duration": None, "test_url": "",
-            "session_id": "", "code_export_dir": "",
-        } for _ in criteria]
+        results = _fan_out(
+            requirements, grouped,
+            lambda _req: _empty_result("pending", "Kane run not attempted."),
+        )
         cache_hit = False
     else:
         _configure_kane_project()
-        # Replay-first dispatch: for each AC, the kane_dispatch module either
-        # replays an existing tests/kane/<feature>/<sc>_test.md asset (cheap,
-        # no LLM reasoning) or records a new one (costs Kane tokens). The
-        # decision is logged to reports/replay_decisions.json.
+        # Replay-first dispatch, per scenario: the kane_dispatch module either
+        # replays an existing _test.md asset (cheap, no LLM reasoning) or
+        # records a new one (costs Kane tokens; blocked when
+        # kaneai.auto_record is false). Decisions → reports/replay_decisions.json.
         from kane_dispatch import dispatch_all  # local import to keep top-level fast
         username = os.environ.get("LT_USERNAME", "")
         access_key = os.environ.get("LT_ACCESS_KEY", "")
         force_re = os.environ.get("FORCE_RE_AUTHOR", "false").lower() == "true"
         max_workers = int(os.environ.get("KANE_MAX_WORKERS", "5"))
         print(
-            f"[Stage 1] Test.md dispatch — workers={max_workers}, {len(criteria)} criteria, "
-            f"force_re_author={force_re}"
+            f"[Stage 1] Test.md dispatch — workers={max_workers}, {active_count} scenarios "
+            f"across {len(requirements)} criteria, force_re_author={force_re}, "
+            f"auto_record={auto_record()}"
         )
         results = dispatch_all(
-            criteria, username=username, access_key=access_key, max_workers=max_workers,
+            requirements, scenarios,
+            username=username, access_key=access_key, max_workers=max_workers,
         )
         cache_hit = False
 
+    results_by_req: dict = {}
+    for kane in results:
+        results_by_req.setdefault(kane.get("requirement_id"), []).append(kane)
+
     analyzed = []
     kane_results = []
-
-    for index, (description, kane) in enumerate(zip(criteria, results), start=1):
-        test_url = kane.get("test_url", "")
-        item = {
-            "id": f"AC-{index:03d}",
-            "title": make_title(description),
-            "description": description,
-            "url": TARGET_URL,
-            "kane_status": kane["status"],
-            "kane_one_liner": kane.get("one_liner", ""),
-            "kane_summary": kane["summary"],
-            "kane_steps": kane.get("steps", []),
-            "kane_final_state": kane["final_state"],
-            "kane_duration": kane["duration"],
-            "kane_links": [test_url] if test_url else [],
-            "kane_session_id": kane.get("session_id", ""),
-            "kane_code_export_dir": kane.get("code_export_dir", ""),
-            "kane_asset_path": kane.get("asset_path", ""),
-            "kane_replay_decision": kane.get("replay_decision", ""),
-            "kane_drift_retries": kane.get("drift_retries", 0),
-            "kane_drift_history": kane.get("drift_history", []),
-            "last_analyzed": today,
-        }
+    for req in requirements:
+        item = build_requirement_record(req, results_by_req.get(req["id"], []), today)
         analyzed.append(item)
-        kane_results.append({
-            "requirement_id": item["id"],
-            "title": item["title"],
-            "status": item["kane_status"],
-            "one_liner": item["kane_one_liner"],
-            "summary": item["kane_summary"],
-            "steps": item["kane_steps"],
-            "final_state": item["kane_final_state"],
-            "duration": item["kane_duration"],
-            "link": test_url,
-            "url": item["url"],
-        })
+        for kane in results_by_req.get(req["id"], []):
+            test_url = kane.get("test_url", "")
+            kane_results.append({
+                "scenario_id": kane.get("scenario_id"),
+                "requirement_id": req["id"],
+                "brd_ref": req.get("brd_ref"),
+                "title": item["title"],
+                "status": kane.get("status", "not_run"),
+                "one_liner": kane.get("one_liner", ""),
+                "summary": kane.get("summary", ""),
+                "steps": kane.get("steps", []),
+                "final_state": kane.get("final_state", {}),
+                "duration": kane.get("duration"),
+                "link": test_url,
+                "url": item["url"],
+                "asset_path": kane.get("asset_path", ""),
+                "replay_decision": kane.get("replay_decision", ""),
+                "session_id": kane.get("session_id", ""),
+                "code_export_dir": kane.get("code_export_dir", ""),
+            })
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -494,26 +620,31 @@ def main():
     kane_path.parent.mkdir(parents=True, exist_ok=True)
     kane_path.write_text(json.dumps(kane_results, indent=2) + "\n", encoding="utf-8")
 
-    print(f"{'ID':8} {'Kane':<9} {'Title':<40} {'Link'}")
+    print(f"{'ID':8} {'Kane':<9} {'Scenarios':<18} {'Title':<40} {'Link'}")
     for item in analyzed:
-        link = item.get("kane_links", [""])[0] if item.get("kane_links") else ""
-        print(f"{item['id']:8} {item['kane_status']:<9} {item['title']:40.40} {link}")
+        link = item["kane_links"][0] if item["kane_links"] else ""
+        sc_ids = ", ".join(str(s["scenario_id"]) for s in item["scenarios"]) or "-"
+        print(f"{item['id']:8} {item['kane_status']:<9} {sc_ids:18.18} {item['title']:40.40} {link}")
 
     elapsed = time.time() - stage_start
     mode_label = "demo" if demo_mode else ("cached" if cache_hit else "live")
     passed_count = sum(1 for a in analyzed if a["kane_status"] == "passed")
     failed_count = sum(1 for a in analyzed if a["kane_status"] == "failed")
+    sc_passed = sum(1 for k in kane_results if k["status"] == "passed")
 
     print_stage_result("1", "ANALYZE_REQUIREMENTS", {
         "Requirements parsed":  len(analyzed),
-        "Criteria analyzed":    f"{len(analyzed)} ({mode_label}, workers=5)",
+        "Criteria analyzed":    f"{len(analyzed)} ({mode_label}, workers={os.environ.get('KANE_MAX_WORKERS', '5')})",
+        "Scenarios dispatched": f"{len(kane_results)} ({sc_passed} passed)",
+        "Uncovered":            len(uncovered),
         "Kane passed":          f"{passed_count}/{len(analyzed)}",
         "Kane failed":          failed_count,
         "Pass rate":            f"{round(passed_count / len(analyzed) * 100, 1) if analyzed else 0}%",
         "Duration":             f"{elapsed:.1f}s",
         "Output":               args.output,
     })
-    emit_metrics("stage1_kane", elapsed, cache_hit=cache_hit, criteria_count=len(criteria))
+    emit_metrics("stage1_kane", elapsed, cache_hit=cache_hit,
+                 criteria_count=len(requirements), scenario_count=len(kane_results))
 
 
 if __name__ == "__main__":

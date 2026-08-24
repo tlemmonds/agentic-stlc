@@ -1,8 +1,8 @@
-Title: No Secret Formula TaskFlow
+Title: TaskFlow v2.0 — Session-Isolated Task Management
 
 As a user
-I want to manage a personal task list with labels
-So that I can track work to do, find it by label, and surface what's overdue
+I want to manage a personal task list with labels, priority, and per-session isolation
+So that I can track work to do, find it by label, surface what's overdue, and run parallel automation without interference
 
 Acceptance Criteria:
 User can create a task with a title and a due date
@@ -13,3 +13,10 @@ User can delete a task
 User can filter the task list by status (active / done / all)
 User can attach a colored label to a task and filter by label
 User can view archived tasks on the Archive page and restore them to the active list
+User can set a task's priority to High, Medium, or Low (or leave it unset)
+User can change a task's priority on the edit screen
+User can archive all completed tasks in one click via an "Archive completed" button at the bottom of the task list
+User can access TaskFlow under a session-prefixed URL of the form /s/<sessionid>/tasks where sessionid is a 32-character lowercase hex UUID
+User visiting a fresh session URL sees an empty task list with the create form available; the session is created implicitly on first write with no signup required
+User visiting a URL with a malformed session ID (not the literal "default" and not a 32-character lowercase hex string) receives an HTTP 404 response
+Tasks, archives, labels, and priorities created under one session are invisible and untouchable from any other session

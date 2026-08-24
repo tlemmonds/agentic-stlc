@@ -22,6 +22,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
+from project_config import (
+    feature_taxonomy,
+    group_scenarios_by_requirement,
+    rollup_kane_status,
+    rollup_playwright_status,
+)
 
 
 def load_json(path, default):
@@ -94,6 +100,50 @@ def _derive_normalized_status(raw_status: str, he_tasks: list) -> str:
             return "FAILED"
         return "PARTIAL"
     return "NOT_EXECUTED" if not raw_status else "INFRA_FAILURE"
+
+
+def _scenario_ids_cell(record: dict) -> str:
+    """'SC-013, SC-014' from `scenario_ids`; legacy single `scenario_id` fallback."""
+    ids = record.get("scenario_ids") or ([record["scenario_id"]] if record.get("scenario_id") else [])
+    return ", ".join(f"`{i}`" for i in ids) if ids else "—"
+
+
+def _requirement_rollup(trace_json: dict, trace_rows: list, requirements: list) -> list:
+    """The traceability `requirements` roll-up (build_traceability Stage 7).
+    Derived from `rows` grouped by requirement_id when the key is absent
+    (older traceability_matrix.json or a build_traceability that predates it)."""
+    rollup = trace_json.get("requirements")
+    if isinstance(rollup, list) and rollup:
+        return rollup
+    brd_by_req = {r.get("id"): r.get("brd_ref", "") for r in requirements if r.get("id")}
+    grouped: dict = {}
+    for row in trace_rows:
+        rid = row.get("requirement_id", "")
+        if rid:
+            grouped.setdefault(rid, []).append(row)
+    derived = []
+    for rid, rows in grouped.items():
+        sc_ids = [r.get("scenario_id") for r in rows if r.get("scenario_id") and r.get("scenario_id") != "n/a"]
+        kane = rollup_kane_status(r.get("kane_ai_result", "") for r in rows)
+        pw_statuses = [r.get("playwright_status", "data_unavailable") for r in rows]
+        pw = rollup_playwright_status(pw_statuses)
+        executed = [s for s in pw_statuses if s in ("passed", "failed")]
+        # overall = passed iff every executed scenario passed, ≥1 executed, Kane roll-up passed
+        if executed and all(s == "passed" for s in executed) and kane == "passed":
+            overall = "passed"
+        elif "failed" in executed or kane == "failed":
+            overall = "failed"
+        else:
+            overall = "data_unavailable"
+        derived.append({
+            "requirement_id": rid,
+            "brd_ref": (rows[0].get("brd_ref") or brd_by_req.get(rid, "")),
+            "scenario_ids": sc_ids,
+            "kane_status": kane,
+            "playwright_status": pw,
+            "overall": overall,
+        })
+    return derived
 
 
 def _he_job_id_from_log():
@@ -280,16 +330,29 @@ def main():
     if not requirements:
         emit("_No requirements data found in analyzed_requirements.json._")
     else:
-        emit(f"| Req ID | Acceptance Criterion | Kane Status | What Kane Observed |")
-        emit("|---|---|---|---|")
+        emit(f"| Req ID | Acceptance Criterion | Scenario | Kane Status | What Kane Observed |")
+        emit("|---|---|---|---|---|")
         for r in requirements:
             kane_status = r.get("kane_status", "unknown")
             icon = status_icon(kane_status)
-            one_liner = r.get("kane_one_liner", "") or "—"
-            kane_links = r.get("kane_links", [])
-            link = f"[session]({kane_links[0]})" if kane_links else "—"
             criterion = r.get("description", "")[:60]
-            emit(f"| `{r['id']}` | {criterion} | {icon} {kane_status} | {one_liner} |")
+            per_scenario = r.get("scenarios") or []
+            if per_scenario:
+                # Many-to-one: requirement roll-up row, then one row per
+                # scenario Kane actually ran (Stage 1 writes `scenarios`).
+                emit(f"| `{r['id']}` | {criterion} | {len(per_scenario)} scenario(s) | {icon} {kane_status} *(roll-up)* | — |")
+                for s in per_scenario:
+                    s_status = s.get("kane_status", "unknown")
+                    s_links = s.get("kane_links", []) or []
+                    s_link = f" [session]({s_links[0]})" if s_links else ""
+                    emit(
+                        f"| ↳ | | `{s.get('scenario_id', '')}` | {status_icon(s_status)} {s_status}{s_link} | "
+                        f"{s.get('kane_one_liner', '') or '—'} |"
+                    )
+            else:
+                # Legacy 1:1 record — single line
+                one_liner = r.get("kane_one_liner", "") or "—"
+                emit(f"| `{r['id']}` | {criterion} | — | {icon} {kane_status} | {one_liner} |")
         emit("")
 
         kane_failed = [r for r in requirements if r.get("kane_status") == "failed"]
@@ -326,7 +389,7 @@ def main():
         summary_2b = confidence.get("summary", {}) or {}
         by_level = summary_2b.get("by_confidence_level", {}) or {}
         records  = confidence.get("records", []) or []
-        high_risk = [r for r in records if r.get("scoring", {}).get("risk_level") == "HIGH"]
+        high_risk = [r for r in records if r.get("risk_assessment", {}).get("risk_level") == "HIGH"]
         emit("## Stage 2b · Scenario Confidence Analysis")
         emit("")
         if high_risk:
@@ -374,7 +437,7 @@ def main():
                 if lvl == "DEPRECATED":
                     dep_in = r.get("deprecated_in_release", "prior release")
                     emit(
-                        f"| `{r.get('requirement_id', '')}` | `{r.get('scenario_id', '')}` | "
+                        f"| `{r.get('requirement_id', '')}` | {_scenario_ids_cell(r)} | "
                         f"— | ⚰️ DEPRECATED | — | ⚰️ DEPRECATED | ⏭️ skipped | "
                         f"removed in {dep_in} |"
                     )
@@ -383,13 +446,15 @@ def main():
                 top_gap = (gaps[0] if gaps else "")[:60]
                 score = r.get("confidence_score", "")
                 emit(
-                    f"| `{r.get('requirement_id', '')}` | `{r.get('scenario_id', '')}` | "
+                    f"| `{r.get('requirement_id', '')}` | {_scenario_ids_cell(r)} | "
                     f"{r.get('feature', '')} | {r.get('criticality', '')} | "
                     f"**{score}** | {level_icon.get(lvl, lvl)} | {kane_icon.get(kane, kane)} | "
                     f"{top_gap}{'…' if len(top_gap) == 60 else ''} |"
                 )
             emit("")
-            emit("> **How to close these gaps:** A *Missing negative/error scenario coverage* gap deducts **25 points** from the confidence score, and for HIGH-criticality features (TASK_CRUD, TASK_LIST, ARCHIVE) it compounds with edge-case and mobile penalties — which is why happy-path-only HIGH-crit ACs land at score **25 / LOW** while MEDIUM-crit ACs with the same gap sit at **75 / HIGH**. Resolve it by listing the negative or error case as its own acceptance criterion in the BRD and naming it in the release notes (e.g. *\"User cannot submit a task with an empty title\"*). The pipeline picks the new AC up on the next release-notes diff, generates a scenario for it, and Kane verifies it against the AUT — closing the gap and lifting the score on the next run.")
+            _crit, _, _ = feature_taxonomy()
+            _high_feats = ", ".join(f for f, c in _crit.items() if c == "HIGH") or "none configured"
+            emit(f"> **How to close these gaps:** A *Missing negative/error scenario coverage* gap deducts **25 points** from the confidence score, and for HIGH-criticality features ({_high_feats}) it compounds with edge-case and mobile penalties — which is why happy-path-only HIGH-crit ACs land at score **25 / LOW** while MEDIUM-crit ACs with the same gap sit at **75 / HIGH**. Resolve it by listing the negative or error case as its own acceptance criterion in the BRD and naming it in the release notes (e.g. *\"User cannot submit a task with an empty title\"*). The pipeline picks the new AC up on the next release-notes diff, generates a scenario for it, and Kane verifies it against the AUT — closing the gap and lifting the score on the next run.")
             emit("")
 
     # ── Stage 3: Test Generation ───────────────────────────────────────────────
@@ -497,6 +562,41 @@ def main():
         f"**{len(all_browsers) or 1}** browser(s) — {pass_rate}% pass rate"
     )
     emit("")
+
+    # Requirement roll-up (many-to-one): one line per AC, scenarios comma-joined.
+    req_rollup = _requirement_rollup(trace_json, trace_rows, requirements)
+    if req_rollup:
+        emit("### Requirement Roll-up")
+        emit("")
+        emit("| Req | BRD ref | Scenarios | Kane | Playwright | Overall |")
+        emit("|---|---|---|---|---|---|")
+        for rr in req_rollup:
+            kane = rr.get("kane_status", "not_run")
+            pw = rr.get("playwright_status", "data_unavailable")
+            overall = rr.get("overall", "unknown")
+            emit(
+                f"| `{rr.get('requirement_id', '')}` | {rr.get('brd_ref') or '—'} | "
+                f"{_scenario_ids_cell(rr)} | {status_icon(kane)} {kane} | "
+                f"{status_icon(pw)} {pw} | {status_icon(overall)} {overall} |"
+            )
+        emit("")
+
+    # Coverage gaps — requirements with no (non-deprecated) scenario at all.
+    # Tombstoned requirements (only deprecated scenarios) are intentional
+    # removals and are rendered as DEPRECATED elsewhere, not as gaps.
+    _live_by_req = group_scenarios_by_requirement(scenarios)
+    _dep_by_req = group_scenarios_by_requirement(scenarios, include_deprecated=True)
+    uncovered_reqs = [
+        r for r in requirements
+        if r.get("id") and not _live_by_req.get(r["id"]) and not _dep_by_req.get(r["id"])
+    ]
+    if uncovered_reqs:
+        emit(f"> 🚨 **Coverage gaps — {len(uncovered_reqs)} requirement(s) with no scenario:** "
+             + ", ".join(
+                 f"`{r['id']}`" + (f" ({r['brd_ref']})" if r.get("brd_ref") else "")
+                 for r in uncovered_reqs
+             ))
+        emit("")
 
     if trace_rows:
         browser_header = " | ".join(b.capitalize() for b in all_browsers) if all_browsers else "Browser"

@@ -469,12 +469,12 @@ def run_failure_intelligence() -> dict:
         s["id"]: s for s in scenarios_raw if isinstance(s, dict) and "id" in s
     }
 
-    # AC-xxx → traceability row (primary source for combined Kane + PW results)
-    trace_by_ac: dict[str, dict] = {
-        row["requirement_id"]: row
-        for row in traceability_rows
-        if isinstance(row, dict) and "requirement_id" in row
-    }
+    # AC-xxx → [traceability row, ...] (many-to-one: one row per scenario).
+    # Primary source for combined Kane + PW results.
+    trace_by_ac: dict[str, list[dict]] = {}
+    for row in traceability_rows:
+        if isinstance(row, dict) and "requirement_id" in row:
+            trace_by_ac.setdefault(row["requirement_id"], []).append(row)
 
     # SC-xxx → list of normalized_results records
     norm_by_sc: dict[str, list[dict]] = {}
@@ -486,20 +486,26 @@ def run_failure_intelligence() -> dict:
     # ------------------------------------------------------------------
     # 3. Identify failing requirements
     # ------------------------------------------------------------------
-    # A requirement is failing if its overall traceability result is "failed"
-    # or if Kane failed (even if Playwright passed — pipeline rule: both required)
+    # A scenario is failing if its overall traceability result is "failed"
+    # or if Kane failed (even if Playwright passed — pipeline rule: both required).
+    # Classification is per scenario row; a requirement with several scenarios
+    # can therefore contribute several failure records.
     failing_rows: list[dict] = [
-        row for row in traceability_rows
+        row
+        for ac_rows in trace_by_ac.values()
+        for row in ac_rows
         if row.get("overall") == "failed"
         or row.get("kane_ai_result") == "failed"
     ]
 
     if not failing_rows:
-        print("  No failing requirements detected — nothing to analyse.")
+        print("  No failing scenarios detected — nothing to analyse.")
         return _build_empty_output()
 
-    print(f"  Found {len(failing_rows)} failing requirement(s): "
-          f"{[r['requirement_id'] for r in failing_rows]}")
+    failing_acs = sorted({r["requirement_id"] for r in failing_rows})
+    print(f"  Found {len(failing_rows)} failing scenario(s) across "
+          f"{len(failing_acs)} requirement(s): "
+          f"{[(r['requirement_id'], r.get('scenario_id', '')) for r in failing_rows]}")
 
     # ------------------------------------------------------------------
     # 4. Classify and collect evidence for each failure
@@ -576,6 +582,10 @@ def run_failure_intelligence() -> dict:
         )
 
         failures.append({
+            "requirement_id": ac_id,
+            "scenario_id": sc_id,
+            "brd_ref": row.get("brd_ref", ""),
+            # legacy keys (notify_agent / write_github_summary read these)
             "failed_requirement": ac_id,
             "failed_scenario": sc_id,
             "failure_type": failure_type,
@@ -624,12 +634,19 @@ def run_failure_intelligence() -> dict:
         )
     ]
 
+    # AC → failing scenario ids (requirement-level view of the per-scenario records)
+    failures_by_requirement: dict[str, list[str]] = {}
+    for f in failures:
+        failures_by_requirement.setdefault(f["requirement_id"], []).append(f["scenario_id"])
+
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_failures": total_failures,
+        "failed_requirements": len(failures_by_requirement),
         "classified": classified,
         "auto_remediable": auto_remediable,
         "failure_clusters": failure_clusters,
+        "failures_by_requirement": failures_by_requirement,
         "failures": failures,
         "summary_by_type": summary_by_type,
         "remediation_priority": remediation_priority,
@@ -642,9 +659,11 @@ def _build_empty_output() -> dict:
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_failures": 0,
+        "failed_requirements": 0,
         "classified": 0,
         "auto_remediable": 0,
         "failure_clusters": {},
+        "failures_by_requirement": {},
         "failures": [],
         "summary_by_type": {},
         "remediation_priority": [],
@@ -691,6 +710,21 @@ def build_markdown(payload: dict) -> str:
     if not failures:
         lines.append("_No failures to report._")
         return "\n".join(lines)
+
+    # One line per failing scenario (a requirement may appear several times)
+    lines.append("## Failing Scenarios")
+    lines.append("")
+    lines.append("| Requirement | Scenario | Failure type | Kane | Auto-remediable |")
+    lines.append("|---|---|---|---|---|")
+    for f in failures:
+        ftype = f.get("failure_type", UNKNOWN_FAILURE)
+        lines.append(
+            f"| {f.get('requirement_id', f.get('failed_requirement', 'AC-???'))} "
+            f"| {f.get('scenario_id', f.get('failed_scenario', 'SC-???'))} "
+            f"| `{ftype}` | {f.get('kane_status', 'unknown')} "
+            f"| {'yes' if ftype in AUTO_REMEDIABLE_TYPES else 'no'} |"
+        )
+    lines.append("")
 
     lines.append("## Failure Analysis")
     lines.append("")

@@ -2,9 +2,11 @@
 Normalize all execution artifacts into reports/normalized_results.json.
 
 Priority order per scenario+browser combination:
-  1. reports/kane_result_SC-*_<browser>.json  (conftest — real timing, real status)
-  2. reports/junit-<browser>.xml / reports/junit.xml  (pytest JUnit — real pass/fail, real duration)
-  3. reports/api_details.json he_tasks  (HE API — real session links)
+  1. reports/kane_result_SC-*_<browser>.json  (conftest — real timing, real status;
+     the native runner writes the same file with source="native")
+  2. reports/native_<SC>.xml  (native JUnit fragment from tests/playwright/native/run_with_junit.py)
+  3. reports/junit-<browser>.xml / reports/junit.xml  (pytest JUnit — real pass/fail, real duration)
+  4. reports/api_details.json he_tasks  (HE API — real session links)
 
 When data is missing: status = "data_unavailable". Never fabricates values.
 
@@ -117,10 +119,57 @@ def _load_junit_results():
     return results
 
 
+def _junit_testcase_status(testcase):
+    """(status, error_message, duration_ms) for one <testcase> element."""
+    duration_s = float(testcase.attrib.get("time", "0") or "0")
+    duration_ms = round(duration_s * 1000)
+    failure_el = testcase.find("failure")
+    error_el = testcase.find("error")
+    skipped_el = testcase.find("skipped")
+    if failure_el is not None or error_el is not None:
+        el = failure_el if failure_el is not None else error_el
+        return "failed", (el.attrib.get("message", "") or el.text or "")[:500], duration_ms
+    if skipped_el is not None:
+        return "skipped", None, duration_ms
+    return "passed", None, duration_ms
+
+
+def _load_native_junit_results():
+    """
+    Load reports/native_<SC>.xml fragments written by tests/playwright/native/run_with_junit.py.
+    testcase name == SC-ID, classname == "native"; browser is always chrome.
+    Returns dict: (sc_id, "chrome") → {status, duration_ms, error_message, source}.
+    """
+    results = {}
+    reports_dir = Path("reports")
+    if not reports_dir.exists():
+        return results
+    for xml_file in sorted(reports_dir.glob("native_SC-*.xml")):
+        try:
+            root = ET.fromstring(xml_file.read_text(encoding="utf-8"))
+        except Exception as exc:
+            _debug(f"Failed to parse {xml_file}: {exc}")
+            continue
+        for testcase in root.iter("testcase"):
+            sc_id = testcase.attrib.get("name", "").strip()
+            if not sc_id.startswith("SC-"):
+                continue
+            status, error_msg, duration_ms = _junit_testcase_status(testcase)
+            results[(sc_id, "chrome")] = {
+                "status": status,
+                "duration_ms": duration_ms,
+                "error_message": error_msg,
+                "source": "native_junit",
+            }
+            _debug(f"native junit: {xml_file.name} → {sc_id}/chrome {status} ({duration_ms}ms)")
+    return results
+
+
 def _sc_id_from_task_name(name: str) -> str:
-    """Extract SC-NNN from a HE task name like 'tests/.../test_sc_003_...'."""
+    """Extract SC-NNN from a HE task name like 'tests/.../test_sc_003_...'
+    or a native selection line like 'tests/playwright/native/sc_016'."""
     import re
-    m = re.search(r"test_sc_(\d+)", name, re.IGNORECASE)
+    m = re.search(r"(?:test_)?sc[_-](\d+)", name, re.IGNORECASE)
     if m:
         return f"SC-{int(m.group(1)):03d}"
     return ""
@@ -161,14 +210,16 @@ def _fn_matches(junit_name: str, fn_name: str) -> bool:
 
 
 def normalize():
-    print_stage_header("6a", "NORMALIZE_ARTIFACTS", "Consolidate conftest, JUnit, and HE API results")
+    print_stage_header("6a", "NORMALIZE_ARTIFACTS", "Consolidate conftest, native, JUnit, and HE API results")
     scenarios_by_id = _load_scenarios()
     conftest_results = _load_conftest_results()
+    native_junit_results = _load_native_junit_results()
     junit_results = _load_junit_results()
     he_sessions = _load_he_session_links()
 
     _debug(f"Scenarios loaded: {len(scenarios_by_id)}")
     _debug(f"Conftest results: {len(conftest_results)}")
+    _debug(f"Native JUnit results: {len(native_junit_results)}")
     _debug(f"JUnit results: {len(junit_results)}")
     _debug(f"HE session links: {len(he_sessions)}")
 
@@ -181,12 +232,14 @@ def normalize():
 
         req_id = scenario.get("requirement_id", "")
         tc_id = scenario.get("test_case_id", "")
-        fn_name = scenario.get("function_name", f"test_{sc_id.lower().replace('-', '_')}")
+        # Native (testmu) scenarios carry function_name: null — fall back to the derived name
+        fn_name = scenario.get("function_name") or f"test_{sc_id.lower().replace('-', '_')}"
 
         # Determine which browsers have results for this scenario
         browsers_from_conftest = {b for (sid, b) in conftest_results if sid == sc_id}
+        browsers_from_native = {b for (sid, b) in native_junit_results if sid == sc_id}
         browsers_from_junit = {b for (jname, b) in junit_results if _fn_matches(jname, fn_name)}
-        browsers = browsers_from_conftest | browsers_from_junit
+        browsers = browsers_from_conftest | browsers_from_native | browsers_from_junit
 
         # HE sessions for this scenario (list, keyed by sc_id now)
         he_sessions_for_sc = he_sessions.get(sc_id, [])
@@ -231,6 +284,9 @@ def normalize():
         for browser in sorted(browsers):
             conftest = conftest_results.get((sc_id, browser), {})
 
+            # Native JUnit fragment (testmu export run by run_with_junit.py), keyed by SC-ID
+            native = native_junit_results.get((sc_id, browser))
+
             # JUnit: find matching entry by function name + browser
             junit = next(
                 (jdata for (jname, jbr), jdata in junit_results.items()
@@ -241,9 +297,10 @@ def normalize():
             # HE API: pick first session for session link (no browser discriminator available)
             he = he_sessions_for_sc[0] if he_sessions_for_sc else {}
 
-            # Status: conftest > junit > he_api (he_api status is less granular)
+            # Status: conftest/native json > native junit > junit > he_api (he_api status is less granular)
             status = (
                 conftest.get("status")
+                or (native or {}).get("status")
                 or (junit or {}).get("status")
                 or (he.get("status") if he.get("status") in ("passed", "failed") else None)
             )
@@ -251,14 +308,26 @@ def normalize():
                 missing_data.append(f"{sc_id}/{browser}: no execution status found")
                 status = "data_unavailable"
 
-            duration_ms = conftest.get("duration_ms") or (junit or {}).get("duration_ms")
-            session_link = he.get("session_link", "")
-            error_message = conftest.get("error_message") or (junit or {}).get("error_message")
+            duration_ms = (
+                conftest.get("duration_ms")
+                or (native or {}).get("duration_ms")
+                or (junit or {}).get("duration_ms")
+            )
+            # The native runner records its own session_link (or ""); otherwise the HE task link.
+            session_link = conftest.get("session_link") or he.get("session_link", "")
+            error_message = (
+                conftest.get("error_message")
+                or (native or {}).get("error_message")
+                or (junit or {}).get("error_message")
+            )
             start_time = conftest.get("start_time")
             end_time = conftest.get("end_time")
 
             if conftest:
-                source = "conftest"
+                # conftest.py writes source="conftest"; run_with_junit.py writes source="native"
+                source = conftest.get("source") or "conftest"
+            elif native:
+                source = "native_junit"
             elif junit:
                 source = "junit"
             elif he:
