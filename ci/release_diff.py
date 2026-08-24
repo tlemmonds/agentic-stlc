@@ -271,9 +271,21 @@ def _parse_requirements_txt(paths: list[Path]) -> list[dict]:
 
 
 def current_requirements() -> list[dict]:
-    """The requirement list for the CURRENT release:
-    requirements/analyzed_requirements.json when present (Stage 1 output),
-    else the `requirements.paths` .txt files from agentic-stlc.config.yaml."""
+    """The requirement list for the CURRENT release.
+
+    The `requirements.paths` .txt files from agentic-stlc.config.yaml are the
+    source of truth (they carry the [REF] labels ADD-binding relies on);
+    requirements/analyzed_requirements.json is only a fallback for projects
+    with no configured paths — it is a Stage 1 *output* and can be stale
+    (e.g. new ACs added since the last Kane run)."""
+    paths = cfg("requirements.paths") or []
+    if isinstance(paths, str):
+        paths = [paths]
+    txt_paths = [REPO_ROOT / p for p in paths if (REPO_ROOT / p).exists()]
+    if txt_paths:
+        parsed = _parse_requirements_txt(txt_paths)
+        if parsed:
+            return parsed
     if ANALYZED_REQS.exists():
         try:
             data = json.loads(ANALYZED_REQS.read_text(encoding="utf-8"))
@@ -284,10 +296,7 @@ def current_requirements() -> list[dict]:
                 {"id": r.get("id"), "brd_ref": r.get("brd_ref"), "description": r.get("description", "")}
                 for r in data if isinstance(r, dict) and r.get("id")
             ]
-    paths = cfg("requirements.paths") or []
-    if isinstance(paths, str):
-        paths = [paths]
-    return _parse_requirements_txt([REPO_ROOT / p for p in paths])
+    return []
 
 
 def _load_lock_for_diff(prev_lock: Path | None) -> tuple[list[dict], list[dict], bool, str]:
