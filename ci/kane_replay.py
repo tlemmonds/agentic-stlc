@@ -79,6 +79,33 @@ def _build_caps(session_name: str, build_name: str, *, username: str, access_key
     )
 
 
+_FM_RE = re.compile(r"^---\s*\n(.*?)\n---", re.S)
+
+
+def _frontmatter_int(asset_path: Path, key: str) -> int | None:
+    """Read an integer key (max_steps, timeout) from the asset's YAML frontmatter, if any."""
+    try:
+        m = _FM_RE.match(asset_path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return None
+    if not m:
+        return None
+    for line in m.group(1).splitlines():
+        k, _, v = line.partition(":")
+        if k.strip() == key:
+            try:
+                return int(v.strip())
+            except ValueError:
+                return None
+    return None
+
+
+def _effective_timeout(asset_path: Path, pipeline_timeout: int) -> int:
+    """Never cut an asset shorter than its own declared timeout."""
+    declared = _frontmatter_int(asset_path, "timeout")
+    return max(pipeline_timeout, declared or 0)
+
+
 def replay(
     asset_path: Path,
     *,
@@ -113,8 +140,13 @@ def replay(
         "--ws-endpoint", ws_endpoint,
         "--agent",
         "--headless",
-        "--timeout", str(timeout_seconds),
-        "--max-steps", "30",
+        "--timeout", str(_effective_timeout(asset_path, timeout_seconds)),
+    ]
+    # Ingested assets declare their own step budget in frontmatter (everdemo:
+    # 30–80). Only impose the pipeline default when the asset is silent.
+    if _frontmatter_int(asset_path, "max_steps") is None:
+        command += ["--max-steps", os.environ.get("KANE_REPLAY_MAX_STEPS", "30")]
+    command += [
         # Note: --retry and --on-lock-conflict were removed because Kane 0.3.1
         # on Windows rejects them with "--retry requires basic auth credentials
         # for the lock API" even when --username/--access-key are passed
@@ -144,7 +176,7 @@ def replay(
         completed = subprocess.run(
             command, capture_output=True, text=True, check=False,
             encoding="utf-8", errors="replace",
-            timeout=timeout_seconds + 60,
+            timeout=_effective_timeout(asset_path, timeout_seconds) + 60,
             cwd=str(REPO_ROOT),
         )
     except subprocess.TimeoutExpired as exc:
