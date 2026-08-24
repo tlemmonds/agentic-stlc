@@ -772,6 +772,9 @@ def write_recommendation(he_tasks: list, requirements_total: int) -> None:
 # Critical scripts must all succeed — pipeline exits 1 if any fail.
 # Order matters: normalize → traceability → coverage → gates → rca → summary
 _CRITICAL_SCRIPTS = [
+    # Stage 6b — native (testmu) tasks write per-scenario results on the HE VM;
+    # pull the merged TestReports artefact into reports/ before normalizing.
+    "ci/fetch_he_artifacts.py",
     "ci/normalize_artifacts.py",
     # Stage 2b — confidence scoring runs before traceability so its outputs
     # (high_risk_requirements.json, scenario-confidence-report.json) are
