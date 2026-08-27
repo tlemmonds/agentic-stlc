@@ -107,19 +107,30 @@ def _place(zip_bytes: bytes, job_id: str) -> tuple[int, int, list[str]]:
         shutil.rmtree(extract_dir)
     extract_dir.mkdir(parents=True, exist_ok=True)
     members = 0
-    candidates: dict[str, list[Path]] = {}
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
         for info in zf.infolist():
             if info.is_dir():
                 continue
             members += 1
             base = Path(info.filename).name
-            stripped = _TASK_SUFFIX.sub("", base)
-            if not _WANTED.match(stripped):
+            if not _WANTED.match(_TASK_SUFFIX.sub("", base)):
                 continue
-            target_tmp = extract_dir / base
-            with zf.open(info) as src, open(target_tmp, "wb") as dst:
+            with zf.open(info) as src, open(extract_dir / base, "wb") as dst:
                 shutil.copyfileobj(src, dst)
+    _, placed, names = _place_from_dir(extract_dir)
+    return members, placed, names
+
+
+def _place_from_dir(extract_dir: Path) -> tuple[int, int, list[str]]:
+    """Select one genuine file per stripped name from an extracted artefact dir and copy it into reports/."""
+    members = 0
+    candidates: dict[str, list[Path]] = {}
+    for target_tmp in sorted(extract_dir.iterdir()):
+        if not target_tmp.is_file():
+            continue
+        members += 1
+        stripped = _TASK_SUFFIX.sub("", target_tmp.name)
+        if _WANTED.match(stripped):
             candidates.setdefault(stripped, []).append(target_tmp)
     # Every VM uploads its whole reports/ dir, so a result file left over from an
     # earlier job in the working tree comes back N times (once per VM, with a
@@ -161,6 +172,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--job-id", default=None)
     ap.add_argument("--name", default="TestReports", help="artefact name from hyperexecute.yaml uploadArtefacts")
+    ap.add_argument("--force", action="store_true", help="re-download even if this job's artefact is already extracted")
     args = ap.parse_args()
 
     print_stage_header("6b", "FETCH_HE_ARTIFACTS", "Pull merged HyperExecute artefacts into reports/")
@@ -175,6 +187,21 @@ def main() -> int:
     if not username or not access_key:
         print_stage_result("6b", "FETCH_HE_ARTIFACTS", {"Status": "skipped — LT credentials missing"})
         return 2
+
+    # Idempotent re-run (post_pipeline calls this again after Stage 6): if this
+    # job's artefact was already extracted, re-place from disk — a second
+    # download of the same artefact is refused (403) for a while.
+    extract_dir = REPORTS / "he_artifacts" / job_id
+    if not args.force and extract_dir.is_dir() and any(extract_dir.iterdir()):
+        members, placed, names = _place_from_dir(extract_dir)
+        print_stage_result("6b", "FETCH_HE_ARTIFACTS", {
+            "Job": job_id,
+            "Artefact": f"{args.name} (already extracted, {members} members on disk)",
+            "Per-scenario files placed": placed,
+            "Examples": ", ".join(names[:4]) + (" …" if len(names) > 4 else ""),
+            "Extracted to": str(extract_dir.relative_to(REPO_ROOT)),
+        })
+        return 0
 
     # HyperExecute merges the per-VM uploads *after* the CLI reports the job
     # finished; for a minute or two the artefact answers 404 (not merged yet) or
