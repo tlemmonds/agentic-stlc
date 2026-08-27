@@ -222,6 +222,8 @@ def build_remediation(
     """
     sc_id = scenario.get("id", "SC-???")
     req_short = requirement_description[:80].rstrip()
+    # Examples must point at the application under test, never at a demo host.
+    base = (scenario.get("kane_url") or "<AUT base URL>").rstrip("/")
 
     if failure_type == KANE_WRONG_TASK:
         return {
@@ -233,8 +235,7 @@ def build_remediation(
             "patch_target": "kane_task_override",
             "patch_detail": (
                 f"For {sc_id}: begin the Kane objective with a direct URL "
-                f"(e.g. https://ecommerce-playground.lambdatest.io/index.php?"
-                f"route=product/product&product_id=28) so Kane lands on the "
+                f"(e.g. {base}/<exact page for this requirement>) so Kane lands on the "
                 f"correct page immediately. The current one_liner was: "
                 f"\"{kane_one_liner}\". "
                 f"Objective should reflect: \"{req_short}\"."
@@ -264,13 +265,10 @@ def build_remediation(
             ),
             "patch_target": "playwright_body",
             "patch_detail": (
-                f"For {sc_id}: prepend login steps to the Playwright body. "
-                f"Example: page.goto('https://ecommerce-playground.lambdatest.io"
-                f"/index.php?route=account/login'), "
-                f"page.fill('#input-email', username), "
-                f"page.fill('#input-password', password), "
-                f"page.click('input[type=submit]'), "
-                f"page.wait_for_url('**/account/account')."
+                f"For {sc_id}: prepend the application's sign-in steps to the Playwright body. "
+                f"Example shape: page.goto('{base}/<login route>'), fill the username and "
+                f"password fields, submit, then wait for the post-login page before the "
+                f"test action. Use the AUT's real selectors — do not copy this template verbatim."
             ),
         }
 
