@@ -27,7 +27,7 @@ LT_API_BASE       = "https://api.lambdatest.com/automation/api/v1"
 LT_USERNAME       = os.environ.get("LT_USERNAME", "")
 LT_ACCESS_KEY     = os.environ.get("LT_ACCESS_KEY", "")
 FULL_RUN          = os.environ.get("FULL_RUN", "true").lower() == "true"
-TARGET_URL        = os.environ.get("TARGET_URL", "https://nosecretformula.vercel.app/")
+TARGET_URL        = os.environ.get("TARGET_URL") or __import__("project_config").cfg("target_url", "") or "https://nosecretformula.vercel.app/"
 TODAY             = datetime.now(timezone.utc).date().isoformat()
 RUN_NUMBER        = os.environ.get("GITHUB_RUN_NUMBER", "")
 BUILD_NAME        = (
@@ -473,7 +473,7 @@ def _parse_mcp_text(text: str) -> object:
     return json.loads(candidate)
 
 
-def _parse_session(s: dict, source: str) -> dict:
+def _parse_session(s: dict, source: str, job_id: str = "") -> dict:
     """Normalise a session record from either the HE API or the Automation API."""
     raw_name = (
         s.get("scenario_name") or s.get("name") or s.get("session_name", "")
@@ -482,40 +482,56 @@ def _parse_session(s: dict, source: str) -> dict:
     parts   = [p.strip() for p in raw_name.split("|")]
     fn_name = parts[-1] if len(parts) > 1 else raw_name
     test_id = s.get("testID") or s.get("test_id") or s.get("session_id", "")
-    task_id = s.get("taskID") or s.get("task_id", "")
+    task_id = s.get("taskID") or s.get("taskId") or s.get("task_id", "")
     status_raw = s.get("status") or s.get("status_ind", "unknown")
     status = "passed" if status_raw in ("passed", "pass", "completed") else (
         "failed" if status_raw in ("failed", "fail", "error") else status_raw
     )
-    link = (
-        f"https://automation.lambdatest.com/test?testID={test_id}"
-        if test_id else ""
-    )
-    print(f"  [{source}] {fn_name!r} → {status}  testID={test_id}")
+    # Grid-backed runs have an Automate testID; native (in-VM) runs don't, so
+    # link the HyperExecute task instead — that page holds the logs and video.
+    if test_id:
+        link = f"https://automation.lambdatest.com/test?testID={test_id}"
+    elif task_id and job_id:
+        link = f"https://hyperexecute.lambdatest.com/hyperexecute/task?jobId={job_id}&taskId={task_id}"
+    else:
+        link = ""
+    print(f"  [{source}] {fn_name!r} → {status}  testID={test_id or '-'}  taskID={task_id or '-'}")
     return {"name": fn_name, "task_id": task_id, "status": status, "session_link": link}
 
 
 async def _fetch_he_sessions_api(client: httpx.AsyncClient, job_id: str) -> list:
-    """Try HyperExecute /v2.0/job/{id}/sessions endpoint."""
+    """HyperExecute per-test records: native (in-VM) tests are exposed at
+    /v2.0/job/{id}/scenarios, grid-backed tests at /v2.0/job/{id}/sessions —
+    same shape either way. Try scenarios first; a job has one kind or the other."""
     tasks = []
     cursor = None
     page = 0
+    resource = None
     while True:
         params: dict = {"limit": 20}
         if cursor:
             params["cursor"] = cursor
-        resp = await client.get(
-            f"https://api.hyperexecute.cloud/v2.0/job/{job_id}/sessions",
-            params=params,
-            auth=(LT_USERNAME, LT_ACCESS_KEY),
-        )
-        if resp.status_code != 200:
-            print(f"[he_sessions_api] {resp.status_code} — {resp.text[:200]}")
-            return []
-        data = resp.json()
+        data: dict = {}
+        for candidate in ([resource] if resource else ["scenarios", "sessions"]):
+            resp = await client.get(
+                f"https://api.hyperexecute.cloud/v2.0/job/{job_id}/{candidate}",
+                params=params,
+                auth=(LT_USERNAME, LT_ACCESS_KEY),
+                headers={"Accept": "application/json", "User-Agent": "agentic-stlc/1.0"},
+            )
+            if resp.status_code != 200:
+                print(f"[he_sessions_api] {candidate}: {resp.status_code} — {resp.text[:160]}")
+                continue
+            data = resp.json()
+            if data.get("data"):
+                resource = candidate
+                break
+            data = {}
+        if not data:
+            return tasks
         page_sessions = data.get("data", [])
-        print(f"[he_sessions_api] page {page}: {len(page_sessions)} session(s)")
-        tasks.extend(_parse_session(s, "he_api") for s in page_sessions)
+        print(f"[he_sessions_api] {resource} page {page}: {len(page_sessions)} record(s)")
+        tasks.extend(_parse_session(s, "he_api", job_id) for s in page_sessions)
         metadata = data.get("metadata", {})
         if not metadata.get("hasmore"):
             break

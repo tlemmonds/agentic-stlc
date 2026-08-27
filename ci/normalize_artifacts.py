@@ -192,9 +192,11 @@ def _load_he_session_links():
         if not sc_id:
             _debug(f"HE API task: could not parse SC ID from {name!r}")
             continue
-        if link in seen_links:
+        # Dedup per (scenario, link): with autosplit one HE task hosts many
+        # scenarios, so the same task link legitimately repeats across sc_ids.
+        if (sc_id, link) in seen_links:
             continue
-        seen_links.add(link)
+        seen_links.add((sc_id, link))
         result.setdefault(sc_id, []).append({
             "session_link": link,
             "status": task.get("status", ""),

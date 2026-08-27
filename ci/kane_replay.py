@@ -189,7 +189,96 @@ def replay(
             "code_export_dir": str(code_export_dir) if code_export_dir else "",
         }
     duration = time.time() - started
-    return _parse_kane_output(completed, duration, code_export_dir)
+    result = _parse_kane_output(completed, duration, code_export_dir)
+    # Evidence links: the Automate session Kane drove (video/logs) and the TMS case
+    # the asset belongs to. Neither is in kane-cli's NDJSON, so resolve them here.
+    result["lt_build_name"] = build_name
+    result["lt_session_name"] = session_name
+    result["tms_case_url"] = _tms_case_url(asset_path)
+    if not result.get("test_url"):
+        result.update({k: v for k, v in
+                       _resolve_automate_session(build_name, session_name, started, username, access_key).items()
+                       if v})
+    return result
+
+
+_AUTOMATE_API = "https://api.lambdatest.com/automation/api/v1"
+_TMS_UI = "https://test-manager.lambdatest.com"
+
+
+def _asset_stem(asset_path: Path) -> str:
+    name = asset_path.name
+    return name[: -len("_test.md")] if name.endswith("_test.md") else asset_path.stem
+
+
+def _tms_case_url(asset_path: Path) -> str:
+    """Test Manager case page for an ingested asset, from its `output-<stem>/.internal/meta.json`
+    sidecar (project_id + testcase_id). Empty when the asset has no sidecar (pipeline-recorded)."""
+    meta = asset_path.parent / f"output-{_asset_stem(asset_path)}" / ".internal" / "meta.json"
+    try:
+        m = json.loads(meta.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    project_id, case_id = m.get("project_id", ""), m.get("testcase_id", "")
+    return f"{_TMS_UI}/projects/{project_id}/test-cases/{case_id}" if project_id and case_id else ""
+
+
+def _lt_get(url: str, username: str, access_key: str, timeout: int = 20) -> dict:
+    import base64
+    import urllib.request
+    token = base64.b64encode(f"{username}:{access_key}".encode()).decode()
+    req = urllib.request.Request(url, headers={"Authorization": f"Basic {token}", "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _resolve_automate_session(build_name: str, session_name: str, started_epoch: float,
+                              username: str, access_key: str) -> dict[str, str]:
+    """Find the LambdaTest Automate session a replay ran in (Kane drives the cloud
+    browser through --ws-endpoint, so every replay is a real Automate session with
+    video + logs). kane-cli's NDJSON never reports the test id, so look it up by
+    build name + session name, newest session started after `started_epoch`.
+    Returns {} on any API problem — links are a nicety, never a gate."""
+    if not (username and access_key and build_name and session_name):
+        return {}
+    try:
+        builds = _lt_get(f"{_AUTOMATE_API}/builds?limit=40", username, access_key).get("data", [])
+        build_ids = sorted((b["build_id"] for b in builds if b.get("name") == build_name), reverse=True)
+        floor = started_epoch - 120
+        best: dict = {}
+        for build_id in build_ids[:3]:
+            offset = 0
+            while True:
+                page = _lt_get(f"{_AUTOMATE_API}/sessions?build_id={build_id}&limit=100&offset={offset}",
+                               username, access_key)
+                rows = page.get("data", [])
+                for s in rows:
+                    if (s.get("name") or "").strip() != session_name.strip():
+                        continue
+                    try:
+                        created = datetime.strptime(s.get("create_timestamp", ""), "%Y-%m-%d %H:%M:%S") \
+                            .replace(tzinfo=timezone.utc).timestamp()
+                    except ValueError:
+                        created = 0
+                    if created >= floor and created >= best.get("_created", -1):
+                        best = {**s, "_created": created}
+                total = ((page.get("Meta") or page.get("meta") or {}).get("result_set") or {}).get("total", 0)
+                offset += len(rows)
+                if not rows or offset >= total:
+                    break
+            if best:
+                break
+        if not best:
+            return {}
+        test_id = best.get("test_id") or best.get("session_id") or ""
+        return {
+            "test_url": f"https://automation.lambdatest.com/test?testID={test_id}" if test_id else "",
+            "lt_test_id": test_id,
+            "video_url": best.get("video_url") or "",
+        }
+    except Exception as exc:  # noqa: BLE001 — never fail a replay over a link lookup
+        print(f"    [kane_replay] automate session lookup skipped: {exc}", file=sys.stderr)
+        return {}
 
 
 def _make_skipped_result(message: str) -> dict[str, Any]:

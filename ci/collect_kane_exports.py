@@ -39,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
 
 import os
-BASE_URL = os.environ.get("TARGET_URL", "https://nosecretformula.vercel.app/")
+BASE_URL = os.environ.get("TARGET_URL") or __import__("project_config").cfg("target_url", "") or "https://nosecretformula.vercel.app/"
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NATIVE_ROOT_REL = Path("tests") / "playwright" / "native"

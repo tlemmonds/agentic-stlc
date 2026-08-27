@@ -354,8 +354,10 @@ def main():
                     s_status = s.get("kane_status", "unknown")
                     s_links = s.get("kane_links", []) or []
                     s_link = f" [session]({s_links[0]})" if s_links else ""
+                    if s.get("kane_case_link"):
+                        s_link += f" · [case]({s['kane_case_link']})"
                     sid = s.get("scenario_id", "")
-                    title = (s.get("title") or sc_title.get(sid) or "").replace("|", "\|")
+                    title = (s.get("title") or sc_title.get(sid) or "").replace("|", "\\|")
                     sc_cell = f"`{sid}` {title}".strip()
                     emit(
                         f"| ↳ | | {sc_cell} | {status_icon(s_status)} {s_status}{s_link} | "
@@ -627,6 +629,9 @@ def main():
             kane = row.get("kane_ai_result", "unknown")
             kane_link = row.get("kane_session_link", "")
             kane_cell = f"[session]({kane_link})" if kane_link else "—"
+            if row.get("kane_case_link"):
+                kane_cell = ((f"[session]({kane_link}) · " if kane_link else "")
+                             + f"[case]({row['kane_case_link']})")
             one_liner = row.get("kane_one_liner", "") or "—"
             per_browser = row.get("playwright_per_browser", {})
             browser_cells = " | ".join(

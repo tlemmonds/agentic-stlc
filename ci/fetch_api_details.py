@@ -31,7 +31,9 @@ def basic_auth_header():
 
 
 def get(url, headers, timeout=30):
-    req = urllib.request.Request(url, headers=headers, method="GET")
+    # LambdaTest's edge rejects urllib's default UA with 403 — send a real one.
+    req = urllib.request.Request(
+        url, headers={**headers, "Accept": "application/json", "User-Agent": "agentic-stlc/1.0"}, method="GET")
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -47,25 +49,25 @@ def extract_he_job_id(failure_analysis_path="reports/hyperexecute_failure_analys
         if match:
             return match.group(1)
     # Fall back to CLI log (written by execute stage, downloaded as artifact)
-    for cli_log in ("hyperexecute-cli.log", "reports/hyperexecute-cli.log"):
+    # The pipeline's own copy first, and the LAST job id in a log wins — a CLI log
+    # can accumulate several jobs, and the root copy may be a stale earlier run.
+    for cli_log in ("reports/hyperexecute-cli.log", "hyperexecute-cli.log"):
         log_path = Path(cli_log)
         if not log_path.exists():
             continue
         text = log_path.read_text(encoding="utf-8", errors="ignore")
-        match = _JOB_ID_RE.search(text)
-        if match:
-            return match.group(1)
-        match = re.search(r'"jobId"\s*:\s*"([\w-]+)"', text)
-        if match:
-            return match.group(1)
+        matches = _JOB_ID_RE.findall(text) or re.findall(r'"jobId"\s*:\s*"([\w-]+)"', text)
+        if matches:
+            return matches[-1]
     return ""
 
 
 def fetch_he_job(job_id, headers):
     """Fetch job summary from HyperExecute API."""
-    for version in ("v2.0", "v1.0"):
+    for path in (f"v2.0/job/{job_id}", f"v2.0/jobs/{job_id}", f"v1.0/jobs/{job_id}"):
         try:
-            return get(f"https://api.hyperexecute.cloud/{version}/jobs/{job_id}", headers)
+            data = get(f"https://api.hyperexecute.cloud/{path}", headers)
+            return data.get("data") if isinstance(data.get("data"), dict) else data
         except Exception:
             continue
     return {}
@@ -81,16 +83,27 @@ def fetch_he_sessions(job_id, headers):
     sessions = []
     cursor = None
     page = 0
+    # Native (non-grid) tests are "scenarios" to HyperExecute; grid-backed tests
+    # are "sessions". Same shape either way — try scenarios first, then sessions.
+    resource = None
     while True:
         params = {"limit": 20}
         if cursor:
             params["cursor"] = cursor
         qs = urllib.parse.urlencode(params)
-        url = f"https://api.hyperexecute.cloud/v2.0/job/{job_id}/sessions?{qs}"
-        try:
-            data = get(url, headers)
-        except Exception as exc:
-            print(f"  sessions API error (page {page}): {exc}")
+        data = None
+        for candidate in ([resource] if resource else ["scenarios", "sessions"]):
+            url = f"https://api.hyperexecute.cloud/v2.0/job/{job_id}/{candidate}?{qs}"
+            try:
+                data = get(url, headers)
+            except Exception as exc:
+                print(f"  {candidate} API error (page {page}): {exc}")
+                data = None
+                continue
+            if data.get("data"):
+                resource = candidate
+                break
+        if not data or not data.get("data"):
             break
         page_sessions = data.get("data", [])
         sessions.extend(page_sessions)
@@ -128,7 +141,7 @@ def extract_session_id(kane_link):
 
 def _sc_id_from_name(name):
     """Map a pytest function name like test_sc_001_* to SC-001."""
-    m = re.search(r"test_sc_(\d+)", name or "", re.IGNORECASE)
+    m = re.search(r"(?:test_)?sc[_-](\d+)", name or "", re.IGNORECASE)
     return f"SC-{int(m.group(1)):03d}" if m else None
 
 
@@ -166,12 +179,15 @@ def main():
         status = session.get("status", "unknown")
         test_id = session.get("testID", "")
         session_id = session.get("sessionID", "")
-        task_id = session.get("taskID", "")
-        # Session link: LambdaTest Automate session URL
-        session_link = (
-            f"https://automation.lambdatest.com/test?testID={test_id}"
-            if test_id else ""
-        )
+        task_id = session.get("taskID") or session.get("taskId") or ""
+        # Session link: the Automate session when the test ran on the grid; for
+        # native (in-VM) runs there is none, so link the HyperExecute task instead.
+        if test_id:
+            session_link = f"https://automation.lambdatest.com/test?testID={test_id}"
+        elif task_id:
+            session_link = f"https://hyperexecute.lambdatest.com/hyperexecute/task?jobId={job_id}&taskId={task_id}"
+        else:
+            session_link = ""
 
         task_results.append({
             "task_id": task_id,
@@ -185,8 +201,9 @@ def main():
             continue
         scenario = next((s for s in scenarios if s["id"] == sc_id), {})
         result_path = reports_dir / f"kane_result_{sc_id}.json"
-        # Conftest-written files from local runs take priority
-        if not result_path.exists():
+        # Conftest/native-written files take priority (kane_result_SC-nnn[_browser].json):
+        # HyperExecute's own scenario status is "skipped" for native runs it can't see into.
+        if not any(reports_dir.glob(f"kane_result_{sc_id}*.json")):
             result_path.write_text(json.dumps({
                 "requirement_id": scenario.get("requirement_id", sc_id),
                 "scenario_id": sc_id,

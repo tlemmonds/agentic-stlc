@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
-from project_config import auto_record, group_scenarios_by_requirement, rollup_kane_status
+from project_config import auto_record, cfg as _cfg, group_scenarios_by_requirement, rollup_kane_status
 
 # On GitHub Actions: /home/runner/.testmuai/kaneai/sessions/
 # On Windows local:  C:/Users/<user>/.testmuai/kaneai/sessions/
@@ -76,7 +76,7 @@ def _kane_exe():
 
 KANE_EXE = _kane_exe()
 
-TARGET_URL = os.environ.get("TARGET_URL", "https://nosecretformula.vercel.app/")
+TARGET_URL = os.environ.get("TARGET_URL") or _cfg("target_url", "") or "https://nosecretformula.vercel.app/"
 
 
 def _configure_kane_project():
@@ -468,6 +468,7 @@ def _scenario_entry(kane: dict) -> dict:
         "scenario_id": kane.get("scenario_id"),
         "kane_status": kane.get("status", "not_run"),
         "kane_links": [test_url] if test_url else [],
+        "kane_case_link": kane.get("tms_case_url", ""),
         "kane_one_liner": kane.get("one_liner", ""),
         "kane_summary": kane.get("summary", ""),
         "kane_steps": kane.get("steps", []),
@@ -605,6 +606,7 @@ def main():
                 "final_state": kane.get("final_state", {}),
                 "duration": kane.get("duration"),
                 "link": test_url,
+                "case_link": kane.get("tms_case_url", ""),
                 "url": item["url"],
                 "asset_path": kane.get("asset_path", ""),
                 "replay_decision": kane.get("replay_decision", ""),

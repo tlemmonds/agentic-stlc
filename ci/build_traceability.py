@@ -144,6 +144,7 @@ def _kane_from(record: dict, default_status: str) -> dict:
     return {
         "status":    record.get("kane_status") or default_status,
         "links":     record.get("kane_links") or [],
+        "case_link": record.get("kane_case_link", ""),
         "one_liner": record.get("kane_one_liner", ""),
         "summary":   record.get("kane_summary", ""),
         "steps":     record.get("kane_steps") or [],
@@ -368,6 +369,7 @@ def main():
                     "coverage_categories": _empty_categories(),
                     "kane_ai_result": kane["status"],
                     "kane_session_link": kane["links"][0] if kane["links"] else "",
+                "kane_case_link": kane["case_link"],
                     "kane_one_liner": kane["one_liner"],
                     "kane_summary": kane["summary"],
                     "kane_steps": kane["steps"],
@@ -471,6 +473,7 @@ def main():
                 "coverage_categories": coverage_categories,
                 "kane_ai_result": kane_status,
                 "kane_session_link": kane["links"][0] if kane["links"] else "",
+                "kane_case_link": kane["case_link"],
                 "kane_one_liner": kane["one_liner"],
                 "kane_summary": kane["summary"],
                 "kane_steps": kane["steps"],
