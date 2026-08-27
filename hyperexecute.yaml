@@ -6,6 +6,10 @@ testSuiteStep: 180
 runson: linux
 
 autosplit: true
+# Native (in-VM) Playwright runs open no LambdaTest grid session, and HE marks any
+# scenario without a session as *skipped* regardless of exit code. Take the status
+# from the runner command's exit code instead (run_with_junit.py propagates it).
+scenarioCommandStatusOnly: true
 retryOnFailure: true
 maxRetries: 1
 concurrency: 5
