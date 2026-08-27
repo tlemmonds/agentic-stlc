@@ -27,6 +27,7 @@ import os
 import re
 import shutil
 import sys
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -106,7 +107,7 @@ def _place(zip_bytes: bytes, job_id: str) -> tuple[int, int, list[str]]:
         shutil.rmtree(extract_dir)
     extract_dir.mkdir(parents=True, exist_ok=True)
     members = 0
-    placed: dict[str, Path] = {}
+    candidates: dict[str, list[Path]] = {}
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
         for info in zf.infolist():
             if info.is_dir():
@@ -119,11 +120,41 @@ def _place(zip_bytes: bytes, job_id: str) -> tuple[int, int, list[str]]:
             target_tmp = extract_dir / base
             with zf.open(info) as src, open(target_tmp, "wb") as dst:
                 shutil.copyfileobj(src, dst)
-            # Later members (retries) overwrite earlier ones — the zip lists them in upload order.
-            placed[stripped] = target_tmp
+            candidates.setdefault(stripped, []).append(target_tmp)
+    # Every VM uploads its whole reports/ dir, so a result file left over from an
+    # earlier job in the working tree comes back N times (once per VM, with a
+    # doubled task suffix) alongside the one genuine result. Zip order is not
+    # provenance — pick the JSON whose start_time is newest, and the XML that
+    # shares that JSON's task id.
+    placed: dict[str, Path] = {}
+    chosen_task: dict[str, str] = {}
+    for stripped, paths in candidates.items():
+        if stripped.endswith(".json"):
+            best = max(paths, key=_result_start_time)
+            placed[stripped] = best
+            m = _TASK_SUFFIX.search(best.name)
+            if m:
+                chosen_task[stripped[: -len(".json")].replace("kane_result_", "").rsplit("_", 1)[0]] = m.group(1)
+    for stripped, paths in candidates.items():
+        if stripped.endswith(".xml"):
+            sc = stripped[: -len(".xml")].replace("native_", "")
+            want = chosen_task.get(sc)
+            # Exact name only: an echoed stale copy carries a doubled suffix
+            # (…-<oldtask>-<want>.xml) and would also pass an endswith() test.
+            match = [p for p in paths if want and p.name == f"{stripped[: -len('.xml')]}-{want}.xml"]
+            placed[stripped] = match[0] if match else max(paths, key=lambda p: p.stat().st_mtime)
     for stripped, src in placed.items():
         shutil.copy2(src, REPORTS / stripped)
     return members, len(placed), sorted(placed)
+
+
+def _result_start_time(path: Path) -> str:
+    """ISO start_time of a kane_result json ('' when unreadable) — sortable as text."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return str(data.get("start_time") or data.get("end_time") or "")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return ""
 
 
 def main() -> int:
@@ -145,14 +176,31 @@ def main() -> int:
         print_stage_result("6b", "FETCH_HE_ARTIFACTS", {"Status": "skipped — LT credentials missing"})
         return 2
 
-    try:
-        blob = _download(job_id, args.name, username, access_key)
-    except urllib.error.HTTPError as exc:
-        print_stage_result("6b", "FETCH_HE_ARTIFACTS", {"Job": job_id, "Status": f"HTTP {exc.code} — {exc.reason}"})
-        return 0 if exc.code == 404 else 2
-    except (urllib.error.URLError, TimeoutError) as exc:
-        print_stage_result("6b", "FETCH_HE_ARTIFACTS", {"Job": job_id, "Status": f"download failed — {exc}"})
-        return 0
+    # HyperExecute merges the per-VM uploads *after* the CLI reports the job
+    # finished; for a minute or two the artefact answers 404 (not merged yet) or
+    # 403 (signed URL not issued yet). Poll instead of giving up on first touch.
+    wait_s = int(os.environ.get("HE_ARTIFACT_WAIT_SECONDS", "300"))
+    poll_s = int(os.environ.get("HE_ARTIFACT_POLL_SECONDS", "20"))
+    deadline = time.monotonic() + wait_s
+    last_status = ""
+    blob = None
+    while True:
+        try:
+            blob = _download(job_id, args.name, username, access_key)
+            break
+        except urllib.error.HTTPError as exc:
+            last_status = f"HTTP {exc.code} — {exc.reason}"
+            if exc.code not in (403, 404) or time.monotonic() >= deadline:
+                print_stage_result("6b", "FETCH_HE_ARTIFACTS", {"Job": job_id, "Status": last_status,
+                                                                 "Waited": f"{wait_s}s" if exc.code in (403, 404) else "—"})
+                return 0 if exc.code == 404 else 2
+        except (urllib.error.URLError, TimeoutError) as exc:
+            last_status = f"download failed — {exc}"
+            if time.monotonic() >= deadline:
+                print_stage_result("6b", "FETCH_HE_ARTIFACTS", {"Job": job_id, "Status": last_status})
+                return 0
+        print(f"[6b] artefact not ready ({last_status}); retrying in {poll_s}s")
+        time.sleep(poll_s)
 
     members, placed, names = _place(blob, job_id)
     print_stage_result("6b", "FETCH_HE_ARTIFACTS", {
