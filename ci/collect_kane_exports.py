@@ -290,6 +290,39 @@ def _stage_native(scenario: dict, source_dir: str, native_root: Path) -> tuple[b
     return True, req_lines
 
 
+_PIN_RE = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*==\s*([0-9][0-9A-Za-z.]*)\s*$")
+
+
+def _version_key(v: str) -> tuple:
+    return tuple(int(x) if x.isdigit() else x for x in v.split("."))
+
+
+def _reconcile_pins(lines: set[str]) -> list[str]:
+    """Collapse conflicting exact pins (`pkg==a` and `pkg==b`) to the highest version.
+
+    Exports recorded on different Kane CLI releases pin different
+    `testmuai-playwright-bindings` versions; pip refuses two `==` pins for one
+    package (ResolutionImpossible) and the whole HyperExecute job dies at
+    prerun. Non-pin lines pass through untouched; the choice is logged."""
+    pinned: dict[str, str] = {}
+    passthrough: list[str] = []
+    for line in lines:
+        m = _PIN_RE.match(line)
+        if not m:
+            passthrough.append(line)
+            continue
+        name, ver = m.group(1).lower(), m.group(2)
+        prev = pinned.get(name)
+        if prev is None:
+            pinned[name] = ver
+        elif _version_key(ver) > _version_key(prev):
+            print(f"  [WARN] native requirements: {name}=={prev} and =={ver} both pinned — keeping =={ver}")
+            pinned[name] = ver
+        elif _version_key(ver) < _version_key(prev):
+            print(f"  [WARN] native requirements: {name}=={ver} and =={prev} both pinned — keeping =={prev}")
+    return sorted(passthrough + [f"{n}=={v}" for n, v in pinned.items()])
+
+
 def _prune_stale_native(native_root: Path, keep: set[str]) -> None:
     """Remove native/<sc_*> folders for scenarios no longer native (fresh staging each run).
     Never touches the framework-owned runner or .gitkeep."""
@@ -383,8 +416,9 @@ def collect_and_assemble(
     native_req_path = native_root / "requirements.txt"
     if native_dirs:
         native_root.mkdir(parents=True, exist_ok=True)
+        reconciled = _reconcile_pins(native_reqs)
         native_req_path.write_text(
-            "\n".join(sorted(native_reqs)) + ("\n" if native_reqs else ""), encoding="utf-8"
+            "\n".join(reconciled) + ("\n" if reconciled else ""), encoding="utf-8"
         )
         if not (native_root / NATIVE_RUNNER_NAME).is_file():
             print(f"  [WARN] {native_root / NATIVE_RUNNER_NAME} is missing — native scenarios "
