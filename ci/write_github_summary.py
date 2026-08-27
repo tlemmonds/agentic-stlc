@@ -330,6 +330,11 @@ def main():
     if not requirements:
         emit("_No requirements data found in analyzed_requirements.json._")
     else:
+        # Scenario id → title so a roll-up reads as *what* was tested, not just which id.
+        sc_title = {
+            s.get("id"): (s.get("title") or s.get("kane_objective") or "")
+            for s in (scenarios or []) if s.get("id")
+        }
         emit(f"| Req ID | Acceptance Criterion | Scenario | Kane Status | What Kane Observed |")
         emit("|---|---|---|---|---|")
         for r in requirements:
@@ -345,8 +350,11 @@ def main():
                     s_status = s.get("kane_status", "unknown")
                     s_links = s.get("kane_links", []) or []
                     s_link = f" [session]({s_links[0]})" if s_links else ""
+                    sid = s.get("scenario_id", "")
+                    title = (s.get("title") or sc_title.get(sid) or "").replace("|", "\|")
+                    sc_cell = f"`{sid}` {title}".strip()
                     emit(
-                        f"| ↳ | | `{s.get('scenario_id', '')}` | {status_icon(s_status)} {s_status}{s_link} | "
+                        f"| ↳ | | {sc_cell} | {status_icon(s_status)} {s_status}{s_link} | "
                         f"{s.get('kane_one_liner', '') or '—'} |"
                     )
             else:
