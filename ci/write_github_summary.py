@@ -302,8 +302,12 @@ def main():
                     change_cell = f"**new:** {item_text}"
                 else:
                     change_cell = item_text
+                # Many-to-one: show every scenario bound to the requirement;
+                # say "uncovered" outright when there are none.
+                sc_ids = op.get("sc_ids") or ([op["sc_id"]] if op.get("sc_id") else [])
+                sc_cell = ", ".join(f"`{i}`" for i in sc_ids) if sc_ids else "⚠️ uncovered"
                 emit(
-                    f"| {op_icon.get(op_type, op_type)} | `{op.get('sc_id') or '—'}` | "
+                    f"| {op_icon.get(op_type, op_type)} | {sc_cell} | "
                     f"`{op.get('requirement_id') or '—'}` | {op.get('issue') or '—'} | "
                     f"{op.get('match_score', 0):.2f} | {change_cell} |"
                 )
