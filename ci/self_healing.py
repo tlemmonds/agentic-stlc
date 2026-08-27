@@ -39,6 +39,26 @@ FAILURE_INTELLIGENCE_PATH = REPORTS_DIR / "failure_intelligence.json"
 SCENARIOS_PATH = SCENARIOS_DIR / "scenarios.json"
 OBJECTIVES_PATH = KANE_DIR / "objectives.json"
 
+def _is_ingested(scenario: dict | None) -> bool:
+    """True for scenarios that mirror an existing Test Manager case (customer-owned)."""
+    if not scenario:
+        return False
+    try:
+        from project_config import is_ingested  # noqa: WPS433 — optional in older layouts
+        return bool(is_ingested(scenario))
+    except Exception:  # pragma: no cover — fall back to the record's own marker
+        return str(scenario.get("source", "")).lower() == "ingested"
+
+
+def _project_target_url() -> str:
+    """The AUT base URL from the project config (`target_url`), or '' when unset."""
+    try:
+        from project_config import cfg  # noqa: WPS433
+        return str(cfg("target_url", "") or "").strip()
+    except Exception:  # pragma: no cover
+        return ""
+
+
 OUTPUT_JSON_PATH = REPORTS_DIR / "self_healing_report.json"
 OUTPUT_MD_PATH = REPORTS_DIR / "self_healing.md"
 PLAYWRIGHT_PATCHES_PATH = REPORTS_DIR / "playwright_patches.json"
@@ -109,17 +129,16 @@ def _build_kane_wrong_task_objective(failure: dict, scenario: dict) -> str:
         or failure.get("failed_requirement", "")
     )
 
-    # Extract product_id if present in existing objective
+    # The application under test comes from the scenario record (kane_url is
+    # set by ingest / Stage 2 from the project config), never from a constant —
+    # a hardcoded demo host here rewrote a real customer's objective once.
+    base_url = (scenario.get("kane_url") or "").strip()
+    if not base_url:
+        base_url = _project_target_url()
+    # Legacy TaskFlow hint: keep a product deep-link if the objective carried one.
     product_id_match = re.search(r"product_id=(\d+)", current_obj)
-    if product_id_match:
-        product_id = product_id_match.group(1)
-        base_url = (
-            f"https://ecommerce-playground.lambdatest.io/index.php"
-            f"?route=product/product&product_id={product_id}"
-        )
-    else:
-        # Fall back to homepage with explicit note
-        base_url = "https://ecommerce-playground.lambdatest.io/"
+    if product_id_match and base_url:
+        base_url = f"{base_url.rstrip('/')}/index.php?route=product/product&product_id={product_id_match.group(1)}"
 
     # Build the action part from the requirement description (short form)
     req_short = req_desc.strip().rstrip(".")
@@ -473,6 +492,24 @@ def run_self_healing() -> dict:
         sc_id = failure.get("failed_scenario", "SC-???")
 
         print(f"  [{sc_id}] failure_type={ftype}")
+
+        # Many-to-one contract: an ingested scenario is a customer-owned Test
+        # Manager case. Its record and its recording are never auto-patched —
+        # the failure is reported (Failure Intelligence) and fixed at source.
+        # (On 2026-08-24 a KANE_WRONG_TASK misclassification rewrote an ingested
+        # scenario's kane_objective with a TaskFlow demo URL.)
+        if _is_ingested(scenarios_map.get(sc_id)):
+            patch_results.append(PatchResult(
+                scenario_id=sc_id,
+                failure_type=ftype,
+                patch_type="none",
+                original="",
+                patched="",
+                file_modified="none",
+                status="skipped",
+                skip_reason="Ingested (customer-owned) scenario — never auto-patched; fix the source asset.",
+            ))
+            continue
 
         if ftype in SKIP_PATCH_TYPES:
             patch_results.append(PatchResult(
