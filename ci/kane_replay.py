@@ -214,10 +214,16 @@ def _parse_kane_output(completed: subprocess.CompletedProcess, duration: float, 
     exit_status = EXIT_STATUS.get(completed.returncode, "error")
     combined = completed.stdout + "\n" + completed.stderr
 
-    run_end: dict | None = None
-    step_summaries: list[str] = []
+    run_end: dict | None = None          # last run_end (one per test.md section)
+    run_ends: list[dict] = []
+    step_summaries: list[str] = []       # every action: "<kind>: <text>"
+    sections: list[dict] = []            # test.md sections: heading, status, duration_s
+    md_summary: dict | None = None       # test_md_summary (commit / heal / decisions)
+    md_done: dict | None = None          # test_md_done (overall_status, wall-clock, session)
     session_id = ""
     discovered_export_dir = ""
+    assertions_passed = 0
+    assertions_failed = 0
 
     for raw in combined.splitlines():
         stripped = raw.strip()
@@ -230,10 +236,31 @@ def _parse_kane_output(completed: subprocess.CompletedProcess, duration: float, 
 
         if event is not None:
             event_type = event.get("type", "")
-            if event_type in ("step_end", "stepEnd") and event.get("summary"):
-                step_summaries.append(event["summary"])
+            if event_type in ("step_end", "stepEnd"):
+                if event.get("summary"):
+                    step_summaries.append(event["summary"])
+                if event.get("kind") == "assert":
+                    if event.get("status") == "passed":
+                        assertions_passed += 1
+                    else:
+                        assertions_failed += 1
+            elif event_type == "test_md_step_start":
+                sections.append({"index": event.get("step_index"), "heading": event.get("heading") or "",
+                                 "status": "", "duration_s": None})
+            elif event_type == "test_md_step_end":
+                idx = event.get("step_index")
+                for sec in reversed(sections):
+                    if sec["index"] == idx:
+                        sec["status"] = event.get("status", "")
+                        sec["duration_s"] = event.get("duration_s")
+                        break
+            elif event_type == "test_md_summary":
+                md_summary = event
+            elif event_type == "test_md_done":
+                md_done = event
             elif event_type in ("run_end", "runEnd"):
                 run_end = event
+                run_ends.append(event)
                 session_id = (
                     event.get("session_id")
                     or event.get("sessionId")
@@ -253,6 +280,8 @@ def _parse_kane_output(completed: subprocess.CompletedProcess, duration: float, 
             if m:
                 session_id = m.group(0)
 
+    export_dir = discovered_export_dir or (str(code_export_dir) if code_export_dir else "")
+
     if not run_end:
         diagnostic = combined.strip()[:500] or "Kane CLI produced no output."
         return {
@@ -260,24 +289,79 @@ def _parse_kane_output(completed: subprocess.CompletedProcess, duration: float, 
             "summary": diagnostic,
             "one_liner": "",
             "steps": step_summaries,
+            "sections": sections,
             "final_state": {},
             "duration": round(duration, 2),
             "test_url": "",
             "session_id": session_id,
-            "code_export_dir": discovered_export_dir or (str(code_export_dir) if code_export_dir else ""),
+            "code_export_dir": export_dir,
         }
 
+    # Overall status: the test.md verdict outranks the last section's run_end.
+    status = (md_done or {}).get("overall_status") or run_end.get("status", exit_status)
+    # Wall-clock: test_md_done.duration_s is the whole replay; run_end.duration is one section.
+    wall = (md_done or {}).get("duration_s") or round(duration, 2)
+
+    # Kane writes prose (summary / one_liner) only when it has something to say —
+    # a failure verdict, a heal, a bug report. A clean deterministic replay
+    # emits summary "" on every section, so synthesise the observation from
+    # what it did emit; keep Kane's own words whenever they exist.
+    kane_summary = (run_end.get("summary") or "").strip()
+    kane_one_liner = (run_end.get("one_liner") or "").strip()
+    if not kane_summary or not kane_one_liner:
+        syn_summary, syn_one_liner = _synthesize_observation(
+            status=status, sections=sections, run_ends=run_ends, md_summary=md_summary,
+            wall_s=wall, assertions_passed=assertions_passed, assertions_failed=assertions_failed,
+            actions=len(step_summaries),
+        )
+        kane_summary = kane_summary or syn_summary
+        kane_one_liner = kane_one_liner or syn_one_liner
+
     return {
-        "status": run_end.get("status", exit_status),
-        "summary": run_end.get("summary", ""),
-        "one_liner": run_end.get("one_liner", ""),
+        "status": status,
+        "summary": kane_summary,
+        "one_liner": kane_one_liner,
         "steps": step_summaries,
+        "sections": sections,
+        "assertions": {"passed": assertions_passed, "failed": assertions_failed},
         "final_state": run_end.get("final_state", {}),
-        "duration": run_end.get("duration") or round(duration, 2),
+        "final_url": run_end.get("final_url", ""),
+        "duration": wall,
         "test_url": run_end.get("test_url", ""),
         "session_id": session_id,
-        "code_export_dir": discovered_export_dir or (str(code_export_dir) if code_export_dir else ""),
+        "code_export_dir": export_dir,
     }
+
+
+def _synthesize_observation(*, status: str, sections: list[dict], run_ends: list[dict], md_summary: dict | None,
+                            wall_s: Any, assertions_passed: int, assertions_failed: int, actions: int) -> tuple[str, str]:
+    """Build (summary, one_liner) from Kane's structured events for runs where it wrote no prose."""
+    total = len(sections)
+    passed = sum(1 for s in sections if s.get("status") == "passed")
+    failed = [s for s in sections if s.get("status") and s.get("status") != "passed"]
+    final_url = (run_ends[-1].get("final_url") or "") if run_ends else ""
+    steps_word = f"{passed}/{total} sections" if total else f"{actions} actions"
+    decisions = ((md_summary or {}).get("steps") or {}) if isinstance((md_summary or {}).get("steps"), dict) else {}
+    replayed = decisions.get("replay_decisions")
+    authored = decisions.get("author_decisions")
+    mode = ""
+    if replayed is not None and authored is not None:
+        mode = "deterministic replay of the recorded actions" if not authored else f"{authored} section(s) re-authored, {replayed} replayed"
+    asserts = f"{assertions_passed} assertion(s) passed" + (f", {assertions_failed} failed" if assertions_failed else "")
+
+    if status == "passed":
+        one_liner = f"Replayed {steps_word} in {wall_s}s — {asserts}" + (f"; ended on {final_url}" if final_url else "")
+    else:
+        first_fail = failed[0]["heading"] if failed else "unknown section"
+        one_liner = f"{status.capitalize()} at “{first_fail}” — {passed}/{total} sections passed, {asserts}"
+
+    lines = [one_liner + (f" ({mode})." if mode else ".")]
+    for s in sections:
+        mark = "✓" if s.get("status") == "passed" else ("✗" if s.get("status") else "…")
+        dur = f" ({s['duration_s']}s)" if s.get("duration_s") is not None else ""
+        heading = s.get("heading") or f"section {s.get('index')}"
+        lines.append(f"{mark} {heading}{dur}")
+    return "\n".join(lines), one_liner
 
 
 def main() -> int:
