@@ -28,6 +28,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent))
 from stage_utils import print_stage_header, print_stage_result
 from project_config import (
+    criticality_for,
     classify_feature,
     deprecated_by_requirement,
     feature_taxonomy,
@@ -126,12 +127,8 @@ def _score_scenario(
         else classify_feature(req_text)
     )
 
-    high_features, medium_features = _criticality_sets()
-    criticality = (
-        "HIGH" if feature in high_features
-        else "MEDIUM" if feature in medium_features
-        else "LOW"
-    )
+    criticality = criticality_for(
+        feature, requirement_id=requirement.get("id"), brd_ref=requirement.get("brd_ref"))
 
     # Dimension scoring — union across the requirement's scenarios.
     has_happy = bool(scenarios)   # any mapped scenario implicitly covers the happy path
@@ -187,7 +184,7 @@ def _score_scenario(
         gaps.append("Missing negative/error scenario coverage")
     if not has_edge and criticality == "HIGH":
         gaps.append("Missing edge-case coverage for high-criticality feature")
-    if not has_mobile and feature in high_features:
+    if not has_mobile and criticality == "HIGH":
         gaps.append("No mobile coverage specified")
 
     # Confidence score (0-100) — per-dimension penalties, criticality-aware.
@@ -198,7 +195,7 @@ def _score_scenario(
         score -= 25
     if not has_edge and criticality == "HIGH":
         score -= 25
-    if not has_mobile and feature in high_features:
+    if not has_mobile and criticality == "HIGH":
         score -= 25
     if kane_status == "not_run":
         score -= 30

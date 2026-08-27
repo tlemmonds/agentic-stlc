@@ -365,7 +365,7 @@ def main():
                     "function_name": "",
                     "source": "n/a",
                     "feature": feature,
-                    "criticality": criticality_for(feature),
+                    "criticality": criticality_for(feature, requirement_id=req_id, brd_ref=brd_ref),
                     "coverage_categories": _empty_categories(),
                     "kane_ai_result": kane["status"],
                     "kane_session_link": kane["links"][0] if kane["links"] else "",
@@ -445,7 +445,7 @@ def main():
             )
 
             feature = classify_feature(description, explicit=scenario.get("feature"))
-            criticality = criticality_for(feature)
+            criticality = criticality_for(feature, requirement_id=req_id, brd_ref=brd_ref)
             combined_txt = f"{description} {scenario.get('title', '')} {scenario.get('description', '')}".lower()
             browsers_run = {r.get("browser", "") for r in browser_records
                             if r.get("status") not in ("data_unavailable", None)}

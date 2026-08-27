@@ -90,6 +90,11 @@ def load_config() -> dict:
         try:
             return json.loads(text)
         except json.JSONDecodeError:
+            # Silent fallback here once re-scored a whole baseline against the
+            # TaskFlow taxonomy (every requirement LOW/GENERAL). Say so.
+            import sys
+            print(f"[project_config] WARNING: PyYAML missing and {_CONFIG_PATH.name} is not JSON — "
+                  f"config ignored, falling back to built-in defaults", file=sys.stderr)
             return {}
     except Exception:
         return {}
@@ -150,15 +155,40 @@ def classify_feature(text: str, explicit: str | None = None) -> str:
         return str(explicit).upper()
     lowered = (text or "").lower()
     _, kws, _ = feature_taxonomy()
+    # The feature whose keyword appears EARLIEST wins, not the first feature in
+    # config order: "Sign-in — … (decision: no lockout)" is AUTH, not ORIGINATION.
+    best_feature, best_pos = DEFAULT_FEATURE, None
     for feature, words in kws.items():
-        if any(w in lowered for w in words):
-            return feature
-    return DEFAULT_FEATURE
+        positions = [lowered.find(w) for w in words if w and w in lowered]
+        if positions:
+            pos = min(positions)
+            if best_pos is None or pos < best_pos:
+                best_feature, best_pos = feature, pos
+    return best_feature
 
 
-def criticality_for(feature: str) -> str:
+def criticality_for(feature: str, *, requirement_id: str | None = None, brd_ref: str | None = None) -> str:
+    """Feature default, unless `criticality_overrides:` in the config names the
+    requirement. Keys are matched against the requirement id and its brd_ref —
+    exact match first, then fnmatch globs (e.g. `NEG-1[2-6]`, `BRD-AC-0[7-8]`) in
+    config order. Lets a baseline say "hard-stop boundaries are HIGH, tier
+    boundaries MEDIUM, 'no lockout in the demo' LOW" without a feature per tier."""
     crit, _, _ = feature_taxonomy()
-    return crit.get(str(feature or "").upper(), DEFAULT_CRITICALITY)
+    default = crit.get(str(feature or "").upper(), DEFAULT_CRITICALITY)
+    overrides = cfg("criticality_overrides")
+    if not isinstance(overrides, dict) or not overrides:
+        return default
+    keys = [k for k in (requirement_id, brd_ref) if k]
+    if not keys:
+        return default
+    for key in keys:
+        if key in overrides:
+            return str(overrides[key]).upper()
+    from fnmatch import fnmatchcase
+    for pattern, level in overrides.items():
+        if any(fnmatchcase(k, str(pattern)) for k in keys):
+            return str(level).upper()
+    return default
 
 
 # ── Many-to-one helpers ───────────────────────────────────────────────────────
