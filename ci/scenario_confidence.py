@@ -5,7 +5,6 @@ Scores each scenario's test coverage sufficiency across multiple dimensions:
   - happy_path: Does the scenario cover the primary success flow?
   - negative: Are failure/rejection cases tested?
   - edge_case: Are boundary/unusual inputs covered?
-  - mobile: Is mobile/responsive behavior considered?
 
 Produces reports consumed by ConfidenceAnalysisSkill, ChatReporter, AND
 write_github_summary.py (which renders the Stage 2b table in the GH summary).
@@ -47,17 +46,12 @@ _EDGE_KEYWORDS = re.compile(
     r"empty cart|no item|already exists|duplicate|concurrent",
     re.IGNORECASE,
 )
-_MOBILE_KEYWORDS = re.compile(
-    r"mobile|responsive|tablet|touch|swipe|viewport|ios|android|small screen",
-    re.IGNORECASE,
-)
 
 # Scenario tags that satisfy a coverage dimension outright (ingested assets
 # carry these; generated scenarios usually don't, so keyword detection on the
 # description/title remains the fallback).
 _NEGATIVE_TAGS = {"negative", "error"}
 _EDGE_TAGS     = {"edge", "boundary"}
-_MOBILE_TAGS   = {"mobile"}
 
 
 def _criticality_sets() -> tuple[set[str], set[str]]:
@@ -83,7 +77,7 @@ CONFIDENCE_SCORE_RANGES: list[dict] = [
     {"level": "VERY_HIGH",    "min": 90, "max": 100, "label": "🟢 VERY_HIGH",    "meaning": "All coverage dimensions satisfied"},
     {"level": "HIGH",         "min": 75, "max": 89,  "label": "🟡 HIGH",         "meaning": "Core flow validated; one minor coverage gap"},
     {"level": "MEDIUM",       "min": 50, "max": 74,  "label": "🟠 MEDIUM",       "meaning": "Happy path present; two important gaps remain"},
-    {"level": "LOW",          "min": 1,  "max": 49,  "label": "🔴 LOW",          "meaning": "Three or more gaps OR Kane functional failure"},
+    {"level": "LOW",          "min": 1,  "max": 49,  "label": "🔴 LOW",          "meaning": "Coverage gaps with Kane not yet run, OR Kane functional failure"},
     {"level": "CRITICAL_GAP", "min": 0,  "max": 0,   "label": "🚨 CRITICAL_GAP", "meaning": "No scenario mapped — zero automated coverage"},
 ]
 
@@ -132,13 +126,12 @@ def _score_scenario(
 
     # Dimension scoring — union across the requirement's scenarios.
     has_happy = bool(scenarios)   # any mapped scenario implicitly covers the happy path
-    has_negative = has_edge = has_mobile = has_real_body = False
+    has_negative = has_edge = has_real_body = False
     for sc in scenarios:
         tags = _tags(sc)
         text = _scenario_text(sc) + " " + req_text
         has_negative |= bool(tags & _NEGATIVE_TAGS) or bool(_NEGATIVE_KEYWORDS.search(text))
         has_edge     |= bool(tags & _EDGE_TAGS)     or bool(_EDGE_KEYWORDS.search(text))
-        has_mobile   |= bool(tags & _MOBILE_TAGS)   or bool(_MOBILE_KEYWORDS.search(text))
         # Check if the test body is more than the generic fallback
         body = playwright_bodies.get(sc.get("id", ""), "")
         has_real_body |= bool(body and "page.title" not in body)
@@ -160,7 +153,7 @@ def _score_scenario(
             "confidence_level": "CRITICAL_GAP",
             "coverage_dimensions": {
                 "happy_path": False, "negative": False, "edge_case": False,
-                "mobile": False, "real_body": False,
+                "real_body": False,
             },
             "coverage_gaps": ["No scenario mapped — zero automated coverage"],
             "recommendations": [f"Map or ingest at least one test case for '{req_text[:60]}'"],
@@ -184,8 +177,6 @@ def _score_scenario(
         gaps.append("Missing negative/error scenario coverage")
     if not has_edge and criticality == "HIGH":
         gaps.append("Missing edge-case coverage for high-criticality feature")
-    if not has_mobile and criticality == "HIGH":
-        gaps.append("No mobile coverage specified")
 
     # Confidence score (0-100) — per-dimension penalties, criticality-aware.
     # See CONFIDENCE_SCORE_RANGES for the score → level mapping the GitHub
@@ -194,8 +185,6 @@ def _score_scenario(
     if not has_negative:
         score -= 25
     if not has_edge and criticality == "HIGH":
-        score -= 25
-    if not has_mobile and criticality == "HIGH":
         score -= 25
     if kane_status == "not_run":
         score -= 30
@@ -212,8 +201,6 @@ def _score_scenario(
         recommendations.append(f"Add scenario: '{req_text[:60]}' with invalid/error conditions")
     if not has_edge and criticality == "HIGH":
         recommendations.append("Add boundary condition test cases")
-    if not has_mobile:
-        recommendations.append("Consider adding mobile viewport test")
 
     confidence_reason = "; ".join(gaps) if gaps else "All coverage dimensions satisfied"
 
@@ -234,7 +221,6 @@ def _score_scenario(
             "happy_path":  has_happy,
             "negative":    has_negative,
             "edge_case":   has_edge,
-            "mobile":      has_mobile,
             "real_body":   has_real_body,
         },
         "coverage_gaps": gaps,
@@ -331,9 +317,6 @@ def run_confidence_analysis(
             if not r["coverage_dimensions"].get("edge_case")
         ),
         "kane_failed_requirements": sum(1 for r in records if r["kane_status"] == "failed"),
-        "no_mobile_coverage": sum(
-            1 for r in records if not r["coverage_dimensions"].get("mobile")
-        ),
         "quality_signals": quality_signals,
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -363,10 +346,6 @@ def run_confidence_analysis(
                 if not r["coverage_dimensions"].get("edge_case")
             ],
             "kane_failures": [r["requirement_id"] for r in records if r["kane_status"] == "failed"],
-            "missing_mobile_coverage": [
-                r["requirement_id"] for r in records
-                if not r["coverage_dimensions"].get("mobile")
-            ],
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }, indent=2) + "\n", encoding="utf-8"
     )
