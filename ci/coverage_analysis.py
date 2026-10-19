@@ -3,7 +3,7 @@ Enterprise Requirement Coverage Analysis Engine.
 
 Reads real pipeline artifacts to compute:
   - Per-requirement coverage status: FULL / PARTIAL / NONE
-  - Coverage categories: happy_path, negative, edge_case, mobile, android, he_executed, regression
+  - Coverage categories: happy_path, negative, edge_case, he_executed, regression
   - Flakiness: retries > 0 or mixed status across browsers
   - Missing scenario types vs. a feature-level risk model
   - Risk level per requirement: HIGH / MEDIUM / LOW
@@ -59,8 +59,6 @@ _SECURITY_KEYWORDS = frozenset([
     "xss", "sql inject", "brute force", "unauthorized access", "csrf",
     "privilege escalation", "bypass", "tamper",
 ])
-_MOBILE_BROWSERS = frozenset(["android", "ios", "safari_mobile", "mobile"])
-_ANDROID_BROWSERS = frozenset(["android"])
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -185,7 +183,7 @@ def analyze(
 
     # Aggregate counters
     cnt_full = cnt_partial = cnt_none = 0
-    cnt_negative = cnt_he = cnt_mobile = cnt_android = 0
+    cnt_negative = cnt_he = 0
 
     for req in requirements:
         req_id      = req.get("id", "")
@@ -247,8 +245,6 @@ def analyze(
 
         # Browser coverage
         browsers_run = {r.get("browser", "") for r in live_results}
-        has_mobile   = bool(browsers_run & _MOBILE_BROWSERS)
-        has_android  = bool(browsers_run & _ANDROID_BROWSERS)
         he_executed  = any(r.get("session_link") for r in all_results)
 
         # Flakiness
@@ -266,8 +262,6 @@ def analyze(
             "negative":        has_negative,
             "edge_case":       has_edge,
             "security":        has_security,
-            "mobile":          has_mobile,
-            "android":         has_android,
             "he_executed":     he_executed,
             "regression":      exec_total > 0,
             "api_integration": False,
@@ -290,8 +284,6 @@ def analyze(
 
         if has_negative:  cnt_negative += 1
         if he_executed:   cnt_he       += 1
-        if has_mobile:    cnt_mobile   += 1
-        if has_android:   cnt_android  += 1
 
         # Risk level
         has_failures = exec_failed > 0 or kane_status == "failed"
@@ -386,8 +378,6 @@ def analyze(
         "any_coverage_pct":     _pct(cnt_full + cnt_partial),
         "negative_coverage_pct": _pct(cnt_negative),
         "he_coverage_pct":      _pct(cnt_he),
-        "mobile_coverage_pct":  _pct(cnt_mobile),
-        "android_coverage_pct": _pct(cnt_android),
         "flaky_count":          len(flaky_requirements),
         "high_risk_count":      sum(1 for r in coverage_records if r["risk_level"] == "HIGH"),
         "medium_risk_count":    sum(1 for r in coverage_records if r["risk_level"] == "MEDIUM"),
@@ -445,7 +435,6 @@ def analyze(
         "Uncovered":              cnt_none,
         "Negative coverage":      f"{summary['negative_coverage_pct']}%",
         "HyperExecute coverage":  f"{summary['he_coverage_pct']}%",
-        "Mobile coverage":        f"{summary['mobile_coverage_pct']}%",
         "Flaky requirements":     len(flaky_requirements),
         "High-risk requirements": summary["high_risk_count"],
         "Missing scenario types": summary["missing_scenario_types"],
@@ -471,8 +460,6 @@ def _write_markdown(records: list, summary: dict, feature_rollup: dict) -> None:
         f"| Partially Covered | {summary['covered_partial']} |",
         f"| Uncovered | {summary['uncovered']} |",
         f"| Negative Test Coverage | {summary['negative_coverage_pct']}% |",
-        f"| Mobile Coverage | {summary['mobile_coverage_pct']}% |",
-        f"| Android Coverage | {summary['android_coverage_pct']}% |",
         f"| HyperExecute Coverage | {summary['he_coverage_pct']}% |",
         f"| Flaky Requirements | {summary['flaky_count']} |",
         f"| High-Risk Requirements | {summary['high_risk_count']} |",
@@ -535,10 +522,10 @@ def _write_markdown(records: list, summary: dict, feature_rollup: dict) -> None:
             f"- **Flaky:** {'YES — ' + str(r['retry_count']) + ' retries' if r['flaky'] else 'no'}",
             "",
             "**Coverage Categories:**",
-            f"| Happy Path | Negative | Edge Case | Mobile | Android | HyperExecute | Regression |",
-            f"|------------|----------|-----------|--------|---------|--------------|------------|",
+            f"| Happy Path | Negative | Edge Case | HyperExecute | Regression |",
+            f"|------------|----------|-----------|--------------|------------|",
             f"| {yes(cats['happy_path'])} | {yes(cats['negative'])} | {yes(cats['edge_case'])} "
-            f"| {yes(cats['mobile'])} | {yes(cats['android'])} | {yes(cats['he_executed'])} "
+            f"| {yes(cats['he_executed'])} "
             f"| {yes(cats['regression'])} |",
             "",
             f"**Execution:** {es['total']} total | {es['passed']} passed | "

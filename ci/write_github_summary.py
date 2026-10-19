@@ -735,8 +735,6 @@ def main():
         if cov_sum.get('deprecated', 0):
             emit(f"| ⚰️ Deprecated (tombstone) | {cov_sum.get('deprecated', 0)} |")
         emit(f"| Negative Test Coverage | {cov_sum.get('negative_coverage_pct', 0)}% |")
-        emit(f"| Mobile Coverage | {cov_sum.get('mobile_coverage_pct', 0)}% |")
-        emit(f"| Android Coverage | {cov_sum.get('android_coverage_pct', 0)}% |")
         emit(f"| HyperExecute Coverage | {cov_sum.get('he_coverage_pct', 0)}% |")
         emit(f"| Flaky Requirements | {cov_sum.get('flaky_count', 0)} |")
         emit(f"| High-Risk Requirements | {cov_sum.get('high_risk_count', 0)} |")

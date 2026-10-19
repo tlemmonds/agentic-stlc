@@ -39,7 +39,6 @@ from project_config import (
 _NEGATIVE_KW = frozenset(["invalid", "error", "fail", "reject", "empty", "remove",
                            "delete", "cannot", "unauthorized", "no results"])
 _EDGE_KW     = frozenset(["empty cart", "zero", "boundary", "duplicate", "persistence"])
-_MOBILE_BR   = frozenset(["android", "ios", "safari_mobile", "mobile"])
 
 DEBUG = os.environ.get("REPORT_DEBUG", "false").lower() == "true"
 
@@ -275,7 +274,7 @@ def compute_result_analysis(rows, summary, all_browsers, requirements_rollup=Non
 def _empty_categories() -> dict:
     return {
         "happy_path": False, "negative": False, "edge_case": False,
-        "mobile": False, "android": False, "he_executed": False, "regression": False,
+        "he_executed": False, "regression": False,
     }
 
 
@@ -447,15 +446,11 @@ def main():
             feature = classify_feature(description, explicit=scenario.get("feature"))
             criticality = criticality_for(feature, requirement_id=req_id, brd_ref=brd_ref)
             combined_txt = f"{description} {scenario.get('title', '')} {scenario.get('description', '')}".lower()
-            browsers_run = {r.get("browser", "") for r in browser_records
-                            if r.get("status") not in ("data_unavailable", None)}
             tags = {str(t).lower() for t in (scenario.get("tags") or [])}
             coverage_categories = {
                 "happy_path":  True,
                 "negative":    "negative" in tags or any(kw in combined_txt for kw in _NEGATIVE_KW),
                 "edge_case":   bool(tags & {"edge", "boundary"}) or any(kw in combined_txt for kw in _EDGE_KW),
-                "mobile":      "mobile" in tags or bool(browsers_run & _MOBILE_BR),
-                "android":     "android" in browsers_run,
                 "he_executed": bool(session_link),
                 "regression":  playwright_overall not in ("data_unavailable", None),
             }
